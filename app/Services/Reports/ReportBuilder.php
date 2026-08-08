@@ -22,6 +22,9 @@ use Illuminate\Support\Collection;
  * Cells are returned as raw scalars rather than formatted strings: the table, the workbook, and
  * the PDF each format for their own medium, and sorting a currency column only behaves when the
  * value underneath is still a number.
+ *
+ * Only the reports the catalogue gives a chart label compute a series at all; the rest skip that
+ * work entirely rather than building a graph the page will not draw.
  */
 class ReportBuilder
 {
@@ -40,7 +43,7 @@ class ReportBuilder
      *
      * @param  array<string, mixed>  $filters
      * @param  array{sort?: string|null, direction?: string|null, page?: int, per_page?: int}  $options
-     * @return array{kpis: list<array{label: string, value: string|int|float, hint?: string}>, chart: array{label: string, kind: string, data: list<array{label: string, value: float|int}>}, rows: array<string, mixed>}
+     * @return array{kpis: list<array{label: string, value: string|int|float, hint?: string}>, chart: array{label: string, kind: string, data: list<array{label: string, value: float|int}>}|null, rows: array<string, mixed>}
      */
     public function build(string $key, User $viewer, array $filters = [], array $options = []): array
     {
@@ -59,10 +62,12 @@ class ReportBuilder
         };
 
         $sorted = $this->sort($payload['rows'], $options, ReportCatalog::defaultSort($key));
+        $chartLabel = ReportCatalog::definition($key)['chart_label'];
 
         return [
             'kpis' => $payload['kpis'],
-            'chart' => ['label' => ReportCatalog::definition($key)['chart_label'], ...$payload['chart']],
+            // Reports the catalogue marks as chartless send nothing, and the page renders no card.
+            'chart' => $chartLabel === null ? null : ['label' => $chartLabel, ...$payload['chart']],
             'rows' => $this->paginate($sorted, $options),
         ];
     }
@@ -114,7 +119,6 @@ class ReportBuilder
                 ['label' => 'Available', 'value' => $assets->where('status', AssetStatus::Available)->count(), 'hint' => 'Sitting in store and ready to issue.'],
                 ['label' => 'Out of service', 'value' => $assets->whereIn('status', [AssetStatus::UnderRepair, AssetStatus::Retired])->count()],
             ],
-            'chart' => $this->ranking($assets->groupBy(fn (Asset $a): string => $a->category?->name ?? 'Uncategorised')->map(fn (Collection $group): int => $group->count())),
         ];
     }
 
@@ -153,9 +157,6 @@ class ReportBuilder
                 ['label' => 'Longest holding', 'value' => $this->longestHolding($assignments), 'hint' => 'The oldest open custody record still outstanding.'],
                 ['label' => 'Average held', 'value' => $this->averageHolding($assignments)],
             ],
-            'chart' => $this->ranking(
-                $assignments->groupBy(fn (AssetAssignment $a): string => $a->user?->department?->name ?? 'Unassigned')->map(fn (Collection $group): int => $group->count()),
-            ),
         ];
     }
 
@@ -237,9 +238,47 @@ class ReportBuilder
                 ['label' => 'Still covered', 'value' => $assets->filter(fn (Asset $a): bool => $a->warranty_expires_at->gt($horizon))->count()],
                 ['label' => 'No warranty recorded', 'value' => $this->assetQuery($viewer, $filters)->whereNull('warranty_expires_at')->count()],
             ],
-            'chart' => $this->timeseries(
-                $assets->groupBy(fn (Asset $a): string => $a->warranty_expires_at->format('Y-m'))->map(fn (Collection $group): int => $group->count()),
-            ),
+            'chart' => $this->warrantyHorizon($assets, $today),
+        ];
+    }
+
+    /**
+     * Group warranties by how long they have left, not by the calendar month they land in.
+     *
+     * A monthly histogram of a few dozen assets spread over years is a row of single-unit bars
+     * carrying no signal, and half of it describes the past, which nobody can act on. Time
+     * remaining aggregates into buckets that each map to a decision: renew now, budget this
+     * quarter, or leave alone.
+     *
+     * @param  Collection<int, Asset>  $assets
+     * @return array{kind: string, format: string, data: list<array{label: string, value: int, tone: string}>}
+     */
+    private function warrantyHorizon(Collection $assets, Carbon $today): array
+    {
+        /** @var list<array{label: string, tone: string, upTo: int}> $buckets */
+        $buckets = [
+            ['label' => 'Expired', 'tone' => 'critical', 'upTo' => -1],
+            ['label' => 'Within 30 days', 'tone' => 'critical', 'upTo' => 30],
+            ['label' => '31–90 days', 'tone' => 'warning', 'upTo' => 90],
+            ['label' => '91–180 days', 'tone' => 'normal', 'upTo' => 180],
+            ['label' => '181–365 days', 'tone' => 'normal', 'upTo' => 365],
+            ['label' => 'Over a year', 'tone' => 'normal', 'upTo' => PHP_INT_MAX],
+        ];
+
+        $remaining = $assets->map(fn (Asset $asset): int => (int) $today->diffInDays($asset->warranty_expires_at, false));
+
+        return [
+            'kind' => 'buckets',
+            'format' => 'number',
+            'data' => array_map(fn (array $bucket, int $index): array => [
+                'label' => $bucket['label'],
+                'tone' => $bucket['tone'],
+                'value' => $remaining->filter(function (int $days) use ($buckets, $index): bool {
+                    $lower = $index === 0 ? PHP_INT_MIN : $buckets[$index - 1]['upTo'];
+
+                    return $days > $lower && $days <= $buckets[$index]['upTo'];
+                })->count(),
+            ], $buckets, array_keys($buckets)),
         ];
     }
 
@@ -325,7 +364,6 @@ class ReportBuilder
                 ['label' => 'Poor condition', 'value' => $assets->where('condition', AssetCondition::Poor)->count(), 'hint' => 'Still in service but flagged as needing replacement.'],
                 ['label' => 'Value affected', 'value' => $this->money($assets->sum(fn (Asset $a): float => (float) $a->purchase_cost))],
             ],
-            'chart' => $this->ranking($assets->groupBy(fn (Asset $a): string => $a->category?->name ?? 'Uncategorised')->map(fn (Collection $group): int => $group->count())),
         ];
     }
 
@@ -462,9 +500,6 @@ class ReportBuilder
                 ['label' => 'Returns', 'value' => $movements->where('movement', 'Returned')->count()],
                 ['label' => 'Still out', 'value' => $assignments->whereNull('returned_at')->count(), 'hint' => 'Custody records with no return logged against them.'],
             ],
-            'chart' => $this->timeseries(
-                $movements->groupBy(fn (array $row): string => Carbon::parse($row['date'])->format('Y-m'))->map(fn (Collection $group): int => $group->count()),
-            ),
         ];
     }
 
@@ -508,7 +543,6 @@ class ReportBuilder
                 ['label' => 'Missing a department', 'value' => $assets->whereNull('department_id')->count()],
                 ['label' => 'No recorded activity', 'value' => $assets->filter(fn (Asset $a): bool => ! $lastTouched->has($a->id))->count()],
             ],
-            'chart' => $this->ranking($assets->groupBy(fn (Asset $a): string => $a->department?->name ?? 'Unassigned')->map(fn (Collection $group): int => $group->count())),
         ];
     }
 

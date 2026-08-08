@@ -62,10 +62,14 @@ class ReportCatalog
      *     answers: string,
      *     description: string,
      *     filters: list<string>,
-     *     chart: string,
+     *     chart: string|null,
      *     default_sort: array{0: string, 1: string},
      *     columns: list<array{0: string, 1: string, 2?: string}>
      * }>
+     *
+     * `chart` is null wherever a graph would be decoration. Listings, logbooks, and count sheets
+     * are read row by row and acted on individually; only the reports that describe a
+     * distribution or a trend over time earn a chart.
      */
     private const REPORTS = [
         'inventory' => [
@@ -75,7 +79,8 @@ class ReportCatalog
             'answers' => 'What hardware do we own, and what condition is it in?',
             'description' => 'Every registered asset with its accountability, condition, location, and cost.',
             'filters' => ['department', 'category', 'status'],
-            'chart' => 'Assets by category',
+            // A register listing is looked up row by row; a category bar chart adds nothing.
+            'chart' => null,
             'default_sort' => ['asset_tag', 'asc'],
             'columns' => [
                 ['asset_tag', 'Asset tag'],
@@ -98,7 +103,7 @@ class ReportCatalog
             'answers' => 'Who is currently holding what, and since when?',
             'description' => 'Open custody records with the holder, their department, and how long they have held it.',
             'filters' => ['department'],
-            'chart' => 'Assets in custody by department',
+            'chart' => null,
             'default_sort' => ['employee', 'asc'],
             'columns' => [
                 ['employee', 'Employee'],
@@ -138,7 +143,7 @@ class ReportCatalog
             'answers' => 'What is still under warranty, expiring soon, or already lapsed?',
             'description' => 'Assets carrying a warranty date, ordered by how soon cover runs out.',
             'filters' => ['department', 'category'],
-            'chart' => 'Warranties expiring by month',
+            'chart' => 'Warranty cover by time remaining',
             'default_sort' => ['warranty_expires_at', 'asc'],
             'columns' => [
                 ['asset_tag', 'Asset tag'],
@@ -178,7 +183,7 @@ class ReportCatalog
             'answers' => 'What has left service, and what value did it carry?',
             'description' => 'Hardware retired, under repair, or recorded in poor condition.',
             'filters' => ['department', 'category'],
-            'chart' => 'Out-of-service assets by category',
+            'chart' => null,
             'default_sort' => ['asset_tag', 'asc'],
             'columns' => [
                 ['asset_tag', 'Asset tag'],
@@ -238,7 +243,7 @@ class ReportCatalog
             'answers' => 'Where has each asset been, and who signed for it?',
             'description' => 'Issue and return handovers unrolled into one dated logbook.',
             'filters' => ['department', 'dates'],
-            'chart' => 'Movements by month',
+            'chart' => null,
             'default_sort' => ['date', 'desc'],
             'columns' => [
                 ['date', 'Date', self::TYPE_DATETIME],
@@ -258,7 +263,7 @@ class ReportCatalog
             'answers' => 'What should a physical count find, and when was each item last touched?',
             'description' => 'Count sheet with accountability and last recorded activity, plus a column to tick off in the field.',
             'filters' => ['department', 'category'],
-            'chart' => 'Assets to count by department',
+            'chart' => null,
             'default_sort' => ['asset_tag', 'asc'],
             'columns' => [
                 ['asset_tag', 'Asset tag'],

@@ -49,7 +49,8 @@ export interface AdminReportPageProps {
     switcher: SwitcherReport[];
     period: string;
     kpis: ReportKpi[];
-    chart: ReportChart;
+    /** Null on listings and count sheets, where a graph would be decoration. */
+    chart: ReportChart | null;
     columns: ReportColumn[];
     rows: ReportRows;
 }
@@ -345,7 +346,7 @@ export function AdminReportPage({
                 )}
 
                 <ReportKpiCards kpis={kpis} />
-                <ReportChartCard chart={chart} />
+                {chart && <ReportChartCard chart={chart} />}
 
                 <div className="min-w-0 space-y-3">
                     <h2 className="text-lg font-semibold">Detailed records</h2>

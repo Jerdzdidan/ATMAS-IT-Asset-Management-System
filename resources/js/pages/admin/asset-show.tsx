@@ -20,7 +20,7 @@ import {
     type SharedData,
 } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeftRight, ImagePlus, PackageCheck, Printer, RotateCcw, Star, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, ImagePlus, PackageCheck, Printer, RotateCcw, Star, Trash2 } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 
@@ -162,6 +162,15 @@ export default function AssetShowPage({ asset, currentAssignment, assignableUser
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Asset ${asset.asset_tag}`} />
             <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+                {/* A plain way back to the register, for anyone who arrived by scanning a label rather than from the list. */}
+                <Link
+                    href="/admin/assets"
+                    className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -mb-2 inline-flex w-fit items-center gap-1.5 rounded-md text-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden"
+                >
+                    <ArrowLeft className="size-4" />
+                    Back to asset list
+                </Link>
+
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                     <div className="space-y-1">
                         <h1 className="text-2xl font-semibold tracking-tight">{asset.asset_tag}</h1>

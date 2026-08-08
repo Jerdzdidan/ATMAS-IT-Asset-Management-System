@@ -590,7 +590,9 @@ open it.
 
 - **Headline figures** across the top — the numbers you would quote in a meeting. Hover the ⓘ on any
   figure for an explanation of what it counts.
-- **A chart** — either a trend by month or a ranking of the strongest few categories.
+- **A chart, on the five reports where one helps** — a trend by month, a ranking, or severity
+  bands. Listings, logbooks, and count sheets deliberately have none: you read those row by row,
+  and a graph over them is decoration.
 - **Filters** — only the ones that report supports. Applied filters appear as chips you can clear
   individually.
 - **A sortable, paged table** — click any heading to sort; 25, 50, or 100 rows per page.

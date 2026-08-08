@@ -1,14 +1,24 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3 } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 export interface ReportChart {
     label: string;
-    /** `timeseries` plots one bar per month; `ranking` plots the strongest few categories. */
-    kind: 'timeseries' | 'ranking';
+    /**
+     * `timeseries` plots one bar per month, `ranking` the strongest few categories, and
+     * `buckets` an ordered set of bands the server has already sequenced.
+     */
+    kind: 'timeseries' | 'ranking' | 'buckets';
     format: 'number' | 'currency';
-    data: { label: string; value: number }[];
+    /** `tone` is only sent on bucket charts, where a band's severity is part of the reading. */
+    data: { label: string; value: number; tone?: 'critical' | 'warning' | 'normal' }[];
 }
+
+const toneColors: Record<string, string> = {
+    critical: 'var(--destructive)',
+    warning: 'var(--warning)',
+    normal: 'var(--primary)',
+};
 
 /** Turn a `2026-03` bucket into `Mar 2026`. */
 function formatMonth(value: string): string {
@@ -81,7 +91,12 @@ export function ReportChartCard({ chart }: { chart: ReportChart }) {
                                 }
                             />
                             <Tooltip cursor={{ fill: 'var(--muted)', opacity: 0.4 }} content={<ChartTooltip chart={chart} />} />
-                            <Bar dataKey="value" fill="var(--primary)" radius={[4, 4, 0, 0]} maxBarSize={56} />
+                            <Bar dataKey="value" fill="var(--primary)" radius={[4, 4, 0, 0]} maxBarSize={56}>
+                                {/* Bucket charts carry their own severity, so each band paints itself. */}
+                                {chart.data.map((point) => (
+                                    <Cell key={point.label} fill={point.tone ? (toneColors[point.tone] ?? 'var(--primary)') : 'var(--primary)'} />
+                                ))}
+                            </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 )}
