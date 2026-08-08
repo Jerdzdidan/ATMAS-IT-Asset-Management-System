@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\UserRole;
+use App\Models\Concerns\RecordsActivity;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,7 +16,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, RecordsActivity;
 
     /**
      * Determine whether the user has unrestricted access to every module.
@@ -47,6 +48,14 @@ class User extends Authenticatable
     public function viewsRegister(): bool
     {
         return $this->role->viewsRegister();
+    }
+
+    /**
+     * Determine whether the user may read the audit trail.
+     */
+    public function viewsAuditTrail(): bool
+    {
+        return $this->role->viewsAuditTrail();
     }
 
     /**

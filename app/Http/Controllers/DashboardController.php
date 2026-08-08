@@ -7,6 +7,7 @@ use App\Enums\MaintenanceRequestStatus;
 use App\Models\Asset;
 use App\Models\AssetAssignment;
 use App\Models\MaintenanceRequest;
+use App\Models\MaintenanceSchedule;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -52,7 +53,25 @@ class DashboardController extends Controller
                     ->whereIn('status', [MaintenanceRequestStatus::Pending, MaintenanceRequestStatus::InProgress])
                     ->whereHas('asset', fn (Builder $asset) => $asset->visibleTo($user))
                     ->count(),
+                'overdue_maintenance' => MaintenanceSchedule::query()
+                    ->where('is_active', true)
+                    ->whereDate('next_due_on', '<', now()->toDateString())
+                    ->whereHas('asset', fn (Builder $asset) => $asset->visibleTo($user))
+                    ->count(),
+                'warranty_expiring' => Asset::query()
+                    ->visibleTo($user)
+                    ->whereNotNull('warranty_expires_at')
+                    ->whereBetween('warranty_expires_at', [now()->toDateString(), now()->addDays(90)->toDateString()])
+                    ->count(),
             ],
+            'upcomingMaintenance' => MaintenanceSchedule::query()
+                ->with('asset:id,asset_tag,name')
+                ->where('is_active', true)
+                ->whereHas('asset', fn (Builder $asset) => $asset->visibleTo($user))
+                ->dueWithinDays(30)
+                ->orderBy('next_due_on')
+                ->limit(5)
+                ->get(),
             'recentAssignments' => AssetAssignment::query()
                 ->with(['asset:id,asset_tag,name', 'user:id,name'])
                 ->whereHas('asset', fn (Builder $asset) => $asset->visibleTo($user))

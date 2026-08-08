@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AssetCondition;
 use App\Enums\AssetStatus;
+use App\Models\Concerns\RecordsActivity;
 use App\Services\AssetTagGenerator;
 use Database\Factories\AssetFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Asset extends Model
 {
     /** @use HasFactory<AssetFactory> */
-    use HasFactory;
+    use HasFactory, RecordsActivity;
 
     /** @var list<string> */
     protected $fillable = [
@@ -105,6 +106,28 @@ class Asset extends Model
     public function maintenanceRequests(): HasMany
     {
         return $this->hasMany(MaintenanceRequest::class);
+    }
+
+    /** @return HasMany<MaintenanceSchedule, $this> */
+    public function maintenanceSchedules(): HasMany
+    {
+        return $this->hasMany(MaintenanceSchedule::class);
+    }
+
+    /** @return HasMany<AssetPhoto, $this> */
+    public function photos(): HasMany
+    {
+        return $this->hasMany(AssetPhoto::class);
+    }
+
+    /**
+     * The single photo used as the asset's thumbnail across the register and labels.
+     *
+     * @return HasOne<AssetPhoto, $this>
+     */
+    public function primaryPhoto(): HasOne
+    {
+        return $this->hasOne(AssetPhoto::class)->where('is_primary', true);
     }
 
     /**

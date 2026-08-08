@@ -38,6 +38,17 @@ enum UserRole: string
     }
 
     /**
+     * Determine whether the role may read the audit trail.
+     *
+     * Confined to the two roles that answer for the register's integrity. Management gets the
+     * summaries and analytics instead, which is what they asked for.
+     */
+    public function viewsAuditTrail(): bool
+    {
+        return in_array($this, [self::SuperAdmin, self::Auditor, self::DepartmentHead], true);
+    }
+
+    /**
      * Determine whether the role only sees the records belonging to its own department.
      */
     public function isDepartmentScoped(): bool

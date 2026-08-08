@@ -1,4 +1,4 @@
-import { AssetConditionBadge, AssetStatusBadge, MaintenanceStatusBadge } from '@/components/status-badges';
+import { AssetConditionBadge, AssetStatusBadge, MaintenanceStatusBadge, maintenanceFrequencyLabels } from '@/components/status-badges';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,15 +11,17 @@ import AppLayout from '@/layouts/app-layout';
 import { currentDateTimeLocal, formatCurrency, formatDate, formatDateTime } from '@/lib/format';
 import {
     type AssetCondition,
+    type AssetPhoto,
     type AssetStatus,
     type BreadcrumbItem,
     type MaintenanceRequestStatus,
     type MaintenanceRequestType,
+    type MaintenanceSchedule,
     type SharedData,
 } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeftRight, PackageCheck, RotateCcw } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { ArrowLeftRight, ImagePlus, PackageCheck, Printer, RotateCcw, Star, Trash2 } from 'lucide-react';
+import { useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 
 interface AssignmentRecord {
@@ -63,12 +65,16 @@ interface AssetDetail {
     department: { id: number; name: string } | null;
     assignments: AssignmentRecord[];
     maintenance_requests: MaintenanceRecord[];
+    photos: AssetPhoto[];
+    maintenance_schedules: MaintenanceSchedule[];
 }
 
 interface AssetShowPageProps {
     asset: AssetDetail;
     currentAssignment: AssignmentRecord | null;
     assignableUsers: { id: number; name: string; employee_code: string | null }[];
+    qrCode: string;
+    labelUrl: string;
 }
 
 const requestTypeLabels: Record<MaintenanceRequestType, string> = {
@@ -86,7 +92,7 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
     );
 }
 
-export default function AssetShowPage({ asset, currentAssignment, assignableUsers }: AssetShowPageProps) {
+export default function AssetShowPage({ asset, currentAssignment, assignableUsers, qrCode, labelUrl }: AssetShowPageProps) {
     const { permissions } = usePage<SharedData>().props.auth;
     const [assignOpen, setAssignOpen] = useState(false);
     const [returnOpen, setReturnOpen] = useState(false);
@@ -94,6 +100,24 @@ export default function AssetShowPage({ asset, currentAssignment, assignableUser
     const assignForm = useForm({ user_id: '', assigned_at: currentDateTimeLocal(), notes: '' });
     const returnForm = useForm({ returned_at: currentDateTimeLocal(), condition: asset.condition, return_notes: '' });
     const lifecycleForm = useForm<Record<string, never>>({});
+    const photoForm = useForm<{ photos: File[]; caption: string }>({ photos: [], caption: '' });
+    const photoInputRef = useRef<HTMLInputElement>(null);
+
+    function uploadPhotos(files: FileList | null): void {
+        if (files === null || files.length === 0) {
+            return;
+        }
+
+        photoForm.transform(() => ({ photos: Array.from(files), caption: '' }));
+        photoForm.post(`/admin/assets/${asset.id}/photos`, {
+            preserveScroll: true,
+            onSuccess: () => toast.success('Photos uploaded successfully.'),
+            // Clearing the native input is what allows the same file to be picked twice.
+            onFinish: () => {
+                if (photoInputRef.current) photoInputRef.current.value = '';
+            },
+        });
+    }
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
@@ -150,29 +174,36 @@ export default function AssetShowPage({ asset, currentAssignment, assignableUser
                             <AssetConditionBadge condition={asset.condition} />
                         </div>
                     </div>
-                    {permissions.manages_assets && (
-                        <div className="flex flex-wrap gap-2">
-                            {asset.status === 'AVAILABLE' && (
-                                <Button onClick={() => setAssignOpen(true)}>
-                                    <ArrowLeftRight /> Issue asset
-                                </Button>
-                            )}
-                            {currentAssignment && (
-                                <Button onClick={() => setReturnOpen(true)}>
-                                    <PackageCheck /> Record return
-                                </Button>
-                            )}
-                            {asset.status === 'RETIRED' ? (
-                                <Button variant="outline" onClick={() => changeLifecycle('restore')} disabled={lifecycleForm.processing}>
-                                    <RotateCcw /> Restore
-                                </Button>
-                            ) : (
-                                <Button variant="outline" onClick={() => changeLifecycle('retire')} disabled={lifecycleForm.processing}>
-                                    Retire
-                                </Button>
-                            )}
-                        </div>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                        <Button asChild variant="outline">
+                            <a href={labelUrl} target="_blank" rel="noreferrer">
+                                <Printer /> Print label
+                            </a>
+                        </Button>
+                        {permissions.manages_assets && (
+                            <>
+                                {asset.status === 'AVAILABLE' && (
+                                    <Button onClick={() => setAssignOpen(true)}>
+                                        <ArrowLeftRight /> Issue asset
+                                    </Button>
+                                )}
+                                {currentAssignment && (
+                                    <Button onClick={() => setReturnOpen(true)}>
+                                        <PackageCheck /> Record return
+                                    </Button>
+                                )}
+                                {asset.status === 'RETIRED' ? (
+                                    <Button variant="outline" onClick={() => changeLifecycle('restore')} disabled={lifecycleForm.processing}>
+                                        <RotateCcw /> Restore
+                                    </Button>
+                                ) : (
+                                    <Button variant="outline" onClick={() => changeLifecycle('retire')} disabled={lifecycleForm.processing}>
+                                        Retire
+                                    </Button>
+                                )}
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 {lifecycleForm.errors.asset && <p className="text-destructive text-sm">{lifecycleForm.errors.asset}</p>}
@@ -198,26 +229,176 @@ export default function AssetShowPage({ asset, currentAssignment, assignableUser
                         </CardContent>
                     </Card>
 
+                    <div className="flex flex-col gap-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Current custody</CardTitle>
+                                <CardDescription>Who is accountable for this asset today.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-5">
+                                {currentAssignment ? (
+                                    <>
+                                        <DetailRow label="Assigned to">{currentAssignment.user?.name ?? '—'}</DetailRow>
+                                        <DetailRow label="Employee code">{currentAssignment.user?.employee_code ?? '—'}</DetailRow>
+                                        <DetailRow label="Issued on">{formatDateTime(currentAssignment.assigned_at)}</DetailRow>
+                                        <DetailRow label="Issued by">{currentAssignment.assigned_by?.name ?? '—'}</DetailRow>
+                                        <DetailRow label="Notes">{currentAssignment.notes ?? '—'}</DetailRow>
+                                    </>
+                                ) : (
+                                    <p className="text-muted-foreground text-sm">
+                                        This asset is not currently issued to anyone.
+                                        {asset.status === 'AVAILABLE' && permissions.manages_assets ? ' Use "Issue asset" to assign it.' : ''}
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Asset label</CardTitle>
+                                <CardDescription>Scanning this code opens the record on any signed-in device.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex flex-col items-center gap-3">
+                                <img src={qrCode} alt={`QR code for ${asset.asset_tag}`} className="size-40 rounded-md border bg-white p-2" />
+                                <p className="font-mono text-sm font-semibold">{asset.asset_tag}</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-2">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Current custody</CardTitle>
-                            <CardDescription>Who is accountable for this asset today.</CardDescription>
+                            <CardTitle>Photos</CardTitle>
+                            <CardDescription>Condition evidence for audits, insurance claims, and handover disputes.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-5">
-                            {currentAssignment ? (
-                                <>
-                                    <DetailRow label="Assigned to">{currentAssignment.user?.name ?? '—'}</DetailRow>
-                                    <DetailRow label="Employee code">{currentAssignment.user?.employee_code ?? '—'}</DetailRow>
-                                    <DetailRow label="Issued on">{formatDateTime(currentAssignment.assigned_at)}</DetailRow>
-                                    <DetailRow label="Issued by">{currentAssignment.assigned_by?.name ?? '—'}</DetailRow>
-                                    <DetailRow label="Notes">{currentAssignment.notes ?? '—'}</DetailRow>
-                                </>
+                        <CardContent className="space-y-4">
+                            {asset.photos.length === 0 ? (
+                                <p className="text-muted-foreground text-sm">No photos have been attached to this asset yet.</p>
                             ) : (
-                                <p className="text-muted-foreground text-sm">
-                                    This asset is not currently issued to anyone.
-                                    {asset.status === 'AVAILABLE' && permissions.manages_assets ? ' Use "Issue asset" to assign it.' : ''}
-                                </p>
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                    {asset.photos.map((photo) => (
+                                        <figure key={photo.id} className="group relative overflow-hidden rounded-md border">
+                                            <img
+                                                src={photo.url}
+                                                alt={photo.caption ?? photo.original_name}
+                                                className="aspect-square w-full object-cover"
+                                            />
+                                            {photo.is_primary && (
+                                                <span className="bg-primary text-primary-foreground absolute top-1 left-1 rounded px-1.5 py-0.5 text-[10px] font-semibold">
+                                                    Primary
+                                                </span>
+                                            )}
+                                            {permissions.manages_assets && (
+                                                <figcaption className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-black/55 p-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                                    {!photo.is_primary && (
+                                                        <Button
+                                                            type="button"
+                                                            size="icon"
+                                                            variant="secondary"
+                                                            className="size-7"
+                                                            aria-label="Make primary"
+                                                            onClick={() =>
+                                                                router.post(
+                                                                    `/admin/assets/${asset.id}/photos/${photo.id}/primary`,
+                                                                    {},
+                                                                    { preserveScroll: true },
+                                                                )
+                                                            }
+                                                        >
+                                                            <Star />
+                                                        </Button>
+                                                    )}
+                                                    <Button
+                                                        type="button"
+                                                        size="icon"
+                                                        variant="destructive"
+                                                        className="size-7"
+                                                        aria-label="Delete photo"
+                                                        onClick={() =>
+                                                            router.delete(`/admin/assets/${asset.id}/photos/${photo.id}`, { preserveScroll: true })
+                                                        }
+                                                    >
+                                                        <Trash2 />
+                                                    </Button>
+                                                </figcaption>
+                                            )}
+                                        </figure>
+                                    ))}
+                                </div>
                             )}
+
+                            {permissions.manages_assets && (
+                                <div className="space-y-2">
+                                    <input
+                                        ref={photoInputRef}
+                                        id="asset-photos"
+                                        type="file"
+                                        multiple
+                                        accept="image/jpeg,image/png,image/webp"
+                                        className="hidden"
+                                        onChange={(event) => uploadPhotos(event.target.files)}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        disabled={photoForm.processing}
+                                        onClick={() => photoInputRef.current?.click()}
+                                    >
+                                        <ImagePlus />
+                                        {photoForm.processing ? `Uploading… ${photoForm.progress?.percentage ?? 0}%` : 'Add photos'}
+                                    </Button>
+                                    {photoForm.errors.photos && <p className="text-destructive text-sm">{photoForm.errors.photos}</p>}
+                                    <p className="text-muted-foreground text-xs">JPG, PNG, or WebP up to 5 MB each, six at a time.</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Preventive maintenance</CardTitle>
+                            <CardDescription>
+                                Recurring service plans for this asset.{' '}
+                                <Link href="/admin/maintenance-schedules" className="underline underline-offset-4">
+                                    Manage schedules
+                                </Link>
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Task</TableHead>
+                                            <TableHead>Cycle</TableHead>
+                                            <TableHead>Last done</TableHead>
+                                            <TableHead>Next due</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {asset.maintenance_schedules.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="text-muted-foreground h-24 text-center">
+                                                    No maintenance plans for this asset.
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            asset.maintenance_schedules.map((schedule) => (
+                                                <TableRow key={schedule.id}>
+                                                    <TableCell className="font-medium">{schedule.title}</TableCell>
+                                                    <TableCell>{maintenanceFrequencyLabels[schedule.frequency]}</TableCell>
+                                                    <TableCell>{formatDate(schedule.last_completed_on)}</TableCell>
+                                                    <TableCell className={schedule.is_overdue ? 'text-destructive font-medium' : undefined}>
+                                                        {formatDate(schedule.next_due_on)}
+                                                        {schedule.is_overdue ? ' · overdue' : ''}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>

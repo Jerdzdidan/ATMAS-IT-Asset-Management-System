@@ -49,12 +49,15 @@ class HandleInertiaRequests extends Middleware
                     'manages_assets' => $user?->managesAssets() ?? false,
                     'manages_users' => $user?->managesUsers() ?? false,
                     'views_register' => $user?->viewsRegister() ?? false,
+                    'views_audit_trail' => $user?->viewsAuditTrail() ?? false,
                     'is_department_scoped' => $user?->isDepartmentScoped() ?? false,
                 ],
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
+                // Row-by-row outcome of a spreadsheet import, shown on the import console.
+                'importSummary' => $request->session()->get('importSummary'),
             ],
         ]);
     }

@@ -11,6 +11,7 @@ use App\Models\AssetCategory;
 use App\Models\AssetTagSequence;
 use App\Models\Department;
 use App\Models\User;
+use App\Services\AssetQrCodeGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -19,6 +20,8 @@ use Inertia\Response;
 
 class AssetController extends Controller
 {
+    public function __construct(private readonly AssetQrCodeGenerator $qrCodes) {}
+
     /**
      * Display the centralized hardware register.
      */
@@ -29,6 +32,7 @@ class AssetController extends Controller
                 ->with([
                     'category:id,name',
                     'department:id,name',
+                    'primaryPhoto:id,asset_id,path',
                     'currentAssignment:id,asset_id,user_id,assigned_at',
                     'currentAssignment.user:id,name,employee_code',
                 ])
@@ -95,6 +99,8 @@ class AssetController extends Controller
         $asset->load([
             'category:id,name',
             'department:id,name',
+            'photos' => fn ($query) => $query->orderByDesc('is_primary')->latest('id'),
+            'maintenanceSchedules' => fn ($query) => $query->orderBy('next_due_on'),
             'assignments' => fn ($query) => $query->latest('assigned_at')->latest('id'),
             'assignments.user:id,name,employee_code',
             'assignments.assignedBy:id,name',
@@ -112,6 +118,8 @@ class AssetController extends Controller
                 ->where('status', 'ACTIVE')
                 ->orderBy('name')
                 ->get(),
+            'qrCode' => $this->qrCodes->dataUri($asset),
+            'labelUrl' => route('admin.labels.sheet', ['assets' => [$asset->id]]),
         ]);
     }
 

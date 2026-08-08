@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type AssetCondition, type AssetStatus, type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { ImageOff, Plus, Printer, QrCode } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 
@@ -39,6 +39,7 @@ interface ManagedAsset {
     remarks: string | null;
     category: { id: number; name: string } | null;
     department: { id: number; name: string } | null;
+    primary_photo: { id: number; url: string } | null;
     current_assignment: {
         id: number;
         assigned_at: string;
@@ -107,6 +108,19 @@ export default function AssetsPage({ assets, categories, departments, currentYea
         : null;
 
     const columns: AdminTableColumn<ManagedAsset>[] = [
+        {
+            key: 'photo',
+            label: '',
+            className: 'w-12',
+            render: (asset) =>
+                asset.primary_photo ? (
+                    <img src={asset.primary_photo.url} alt="" className="size-9 rounded border object-cover" />
+                ) : (
+                    <div className="bg-muted text-muted-foreground flex size-9 items-center justify-center rounded border">
+                        <ImageOff className="size-4" />
+                    </div>
+                ),
+        },
         {
             key: 'asset_tag',
             label: 'Asset tag',
@@ -218,11 +232,23 @@ export default function AssetsPage({ assets, categories, departments, currentYea
                                 : 'Track every hardware asset, its custodian, and its lifecycle status.'}
                         </p>
                     </div>
-                    {permissions.manages_assets && (
-                        <Button onClick={openCreate}>
-                            <Plus /> Register asset
+                    <div className="flex flex-wrap gap-2">
+                        <Button asChild variant="outline">
+                            <Link href="/admin/scan">
+                                <QrCode /> Scan
+                            </Link>
                         </Button>
-                    )}
+                        <Button asChild variant="outline">
+                            <a href="/admin/labels" target="_blank" rel="noreferrer">
+                                <Printer /> Print labels
+                            </a>
+                        </Button>
+                        {permissions.manages_assets && (
+                            <Button onClick={openCreate}>
+                                <Plus /> Register asset
+                            </Button>
+                        )}
+                    </div>
                 </div>
                 <AdminDataTable
                     data={assets}

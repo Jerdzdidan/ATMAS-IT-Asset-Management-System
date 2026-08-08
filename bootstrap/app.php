@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Http\Middleware\EnsureUserManagesAssets;
+use App\Http\Middleware\EnsureUserViewsAuditTrail;
 use App\Http\Middleware\EnsureUserViewsRegister;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'super.admin' => EnsureUserIsSuperAdmin::class,
             'asset.manager' => EnsureUserManagesAssets::class,
             'register.viewer' => EnsureUserViewsRegister::class,
+            'audit.viewer' => EnsureUserViewsAuditTrail::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

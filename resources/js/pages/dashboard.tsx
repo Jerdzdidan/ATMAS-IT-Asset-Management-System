@@ -1,11 +1,12 @@
 import { MaintenanceStatusBadge } from '@/components/status-badges';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import { formatDateTime } from '@/lib/format';
-import { type BreadcrumbItem, type MaintenanceRequestStatus } from '@/types';
+import { formatDate, formatDateTime } from '@/lib/format';
+import { type BreadcrumbItem, type MaintenanceRequestStatus, type MaintenanceSchedule } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { CheckCircle2, HardDrive, PackageCheck, Wrench } from 'lucide-react';
+import { CalendarClock, CheckCircle2, HardDrive, PackageCheck, ShieldAlert, Wrench } from 'lucide-react';
 
 interface DashboardPageProps {
     statistics: {
@@ -15,7 +16,10 @@ interface DashboardPageProps {
         under_repair: number;
         retired: number;
         open_requests: number;
+        overdue_maintenance: number;
+        warranty_expiring: number;
     };
+    upcomingMaintenance: MaintenanceSchedule[];
     recentAssignments: {
         id: number;
         assigned_at: string;
@@ -34,22 +38,35 @@ interface DashboardPageProps {
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Dashboard', href: '/dashboard' }];
 
-function StatCard({ label, value, hint, icon: Icon }: { label: string; value: number; hint: string; icon: typeof HardDrive }) {
+function StatCard({
+    label,
+    value,
+    hint,
+    icon: Icon,
+    alert = false,
+}: {
+    label: string;
+    value: number;
+    hint: string;
+    icon: typeof HardDrive;
+    /** Draws attention when the figure is something someone has to act on. */
+    alert?: boolean;
+}) {
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{label}</CardTitle>
-                <Icon className="text-muted-foreground size-4" />
+                <Icon className={alert && value > 0 ? 'text-destructive size-4' : 'text-muted-foreground size-4'} />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{value}</div>
+                <div className={alert && value > 0 ? 'text-destructive text-2xl font-bold' : 'text-2xl font-bold'}>{value}</div>
                 <p className="text-muted-foreground text-xs">{hint}</p>
             </CardContent>
         </Card>
     );
 }
 
-export default function DashboardPage({ statistics, recentAssignments, recentRequests }: DashboardPageProps) {
+export default function DashboardPage({ statistics, upcomingMaintenance, recentAssignments, recentRequests }: DashboardPageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
@@ -59,19 +76,80 @@ export default function DashboardPage({ statistics, recentAssignments, recentReq
                     <p className="text-muted-foreground">A live view of the hardware register and the repair queue.</p>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                     <StatCard label="Total assets" value={statistics.total_assets} hint={`${statistics.retired} retired`} icon={HardDrive} />
                     <StatCard label="Available" value={statistics.available} hint="Ready to be issued" icon={CheckCircle2} />
                     <StatCard label="Assigned" value={statistics.assigned} hint="In employee custody" icon={PackageCheck} />
                     <StatCard label="Open requests" value={statistics.open_requests} hint={`${statistics.under_repair} under repair`} icon={Wrench} />
+                    <StatCard
+                        label="Overdue PM"
+                        value={statistics.overdue_maintenance}
+                        hint="Past the scheduled service date"
+                        icon={CalendarClock}
+                        alert
+                    />
+                    <StatCard label="Warranty ending" value={statistics.warranty_expiring} hint="Within the next 90 days" icon={ShieldAlert} alert />
                 </div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Maintenance due soon</CardTitle>
+                        <CardDescription>
+                            Preventive plans falling due in the next 30 days.{' '}
+                            <Link href="/admin/maintenance-schedules" className="underline underline-offset-4">
+                                Open the schedule
+                            </Link>
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Asset</TableHead>
+                                        <TableHead>Task</TableHead>
+                                        <TableHead>Due</TableHead>
+                                        <TableHead>State</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {upcomingMaintenance.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-muted-foreground h-24 text-center">
+                                                Nothing falls due in the next 30 days.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        upcomingMaintenance.map((schedule) => (
+                                            <TableRow key={schedule.id}>
+                                                <TableCell className="font-medium">{schedule.asset?.asset_tag ?? '—'}</TableCell>
+                                                <TableCell>{schedule.title}</TableCell>
+                                                <TableCell>{formatDate(schedule.next_due_on)}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={schedule.is_overdue ? 'danger' : 'warning'}>
+                                                        {schedule.is_overdue
+                                                            ? `${Math.abs(schedule.days_until_due ?? 0)} days overdue`
+                                                            : `In ${schedule.days_until_due} days`}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 <div className="grid gap-6 lg:grid-cols-2">
                     <Card>
                         <CardHeader>
                             <CardTitle>Recent issuances</CardTitle>
                             <CardDescription>
-                                The latest custody records. <Link href="/admin/assets" className="underline underline-offset-4">View all assets</Link>
+                                The latest custody records.{' '}
+                                <Link href="/admin/assets" className="underline underline-offset-4">
+                                    View all assets
+                                </Link>
                             </CardDescription>
                         </CardHeader>
                         <CardContent>

@@ -38,8 +38,8 @@ export default function EmployeeDashboardPage({ assignedAssets, openRequestCount
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight">Welcome, {auth.user.name}</h1>
                     <p className="text-muted-foreground">
-                        You are accountable for {assignedAssets.length} {assignedAssets.length === 1 ? 'asset' : 'assets'} and have{' '}
-                        {openRequestCount} open {openRequestCount === 1 ? 'request' : 'requests'}.
+                        You are accountable for {assignedAssets.length} {assignedAssets.length === 1 ? 'asset' : 'assets'} and have {openRequestCount}{' '}
+                        open {openRequestCount === 1 ? 'request' : 'requests'}.
                     </p>
                 </div>
 

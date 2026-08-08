@@ -12,6 +12,15 @@ const badgeVariants = cva(
                 secondary: 'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
                 destructive: 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
                 outline: 'text-foreground',
+                /*
+                  Tinted variants drawn from the Forms International ring. Kept as soft washes
+                  rather than solid fills so a dense table of statuses stays readable.
+                */
+                success: 'border-transparent bg-success/12 text-success dark:bg-success/20',
+                info: 'border-transparent bg-info/12 text-info dark:bg-info/20',
+                warning: 'border-transparent bg-warning/15 text-warning dark:bg-warning/25',
+                danger: 'border-transparent bg-destructive/12 text-destructive dark:bg-destructive/20',
+                neutral: 'border-border bg-muted text-muted-foreground',
             },
         },
         defaultVariants: {

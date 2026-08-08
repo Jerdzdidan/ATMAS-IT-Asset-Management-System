@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
-import { type AssetCondition, type AssetStatus, type MaintenanceRequestStatus } from '@/types';
+import { type AssetCondition, type AssetStatus, type MaintenanceFrequency, type MaintenanceRequestStatus } from '@/types';
 
-type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
+type BadgeVariant = 'success' | 'info' | 'warning' | 'danger' | 'neutral';
 
 export const assetStatusLabels: Record<AssetStatus, string> = {
     AVAILABLE: 'Available',
@@ -24,25 +24,37 @@ export const maintenanceStatusLabels: Record<MaintenanceRequestStatus, string> =
     REJECTED: 'Rejected',
 };
 
+/** Kept in step with App\Enums\MaintenanceFrequency. */
+export const maintenanceFrequencyLabels: Record<MaintenanceFrequency, string> = {
+    MONTHLY: 'Monthly',
+    QUARTERLY: 'Quarterly',
+    SEMI_ANNUAL: 'Every 6 months',
+    ANNUAL: 'Annually',
+};
+
+/**
+ * Status colours follow the Forms International ring: green for healthy, blue for in-use,
+ * orange for needs-attention, red for a problem, grey for out of service.
+ */
 const assetStatusVariants: Record<AssetStatus, BadgeVariant> = {
-    AVAILABLE: 'default',
-    ASSIGNED: 'secondary',
-    UNDER_REPAIR: 'destructive',
-    RETIRED: 'outline',
+    AVAILABLE: 'success',
+    ASSIGNED: 'info',
+    UNDER_REPAIR: 'warning',
+    RETIRED: 'neutral',
 };
 
 const assetConditionVariants: Record<AssetCondition, BadgeVariant> = {
-    NEW: 'default',
-    GOOD: 'default',
-    FAIR: 'secondary',
-    POOR: 'destructive',
+    NEW: 'success',
+    GOOD: 'info',
+    FAIR: 'warning',
+    POOR: 'danger',
 };
 
 const maintenanceStatusVariants: Record<MaintenanceRequestStatus, BadgeVariant> = {
-    PENDING: 'secondary',
-    IN_PROGRESS: 'default',
-    RESOLVED: 'outline',
-    REJECTED: 'destructive',
+    PENDING: 'warning',
+    IN_PROGRESS: 'info',
+    RESOLVED: 'success',
+    REJECTED: 'danger',
 };
 
 export function AssetStatusBadge({ status }: { status: AssetStatus }) {
