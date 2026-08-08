@@ -25,13 +25,13 @@ function buildAssetManagementGroup(managesAssets: boolean): NavGroup {
     };
 }
 
-/** Reporting and the audit trail answer to different roles, so they are gated separately. */
+/** Reporting and the activity log answer to different roles, so they are gated separately. */
 function buildInsightsGroup(permissions: Permissions): NavGroup {
     return {
         title: 'Reporting',
         items: [
             { title: 'Reports', url: '/admin/reports', icon: FileSpreadsheet },
-            ...(permissions.views_audit_trail ? [{ title: 'Audit Trail', url: '/admin/activity-log', icon: ScrollText }] : []),
+            ...(permissions.views_audit_trail ? [{ title: 'Logs', url: '/admin/logs', icon: ScrollText }] : []),
         ],
     };
 }
@@ -60,9 +60,6 @@ export function AppSidebar() {
         dashboardGroup,
         ...(permissions.views_register ? [buildAssetManagementGroup(permissions.manages_assets)] : []),
         ...(permissions.views_register ? [buildInsightsGroup(permissions)] : []),
-        ...(permissions.manages_assets
-            ? [{ title: 'Data', items: [{ title: 'Import / Export', url: '/admin/import-export', icon: FileSpreadsheet }] }]
-            : []),
         ...(permissions.manages_users ? [administrationGroup] : []),
         myWorkspaceGroup,
     ];

@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Employee\AssetController as EmployeeAssetController;
 use App\Http\Controllers\Employee\MaintenanceRequestController as EmployeeMaintenanceRequestController;
+use App\Services\Reports\ReportCatalog;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->get('/', function () {
@@ -46,9 +47,18 @@ Route::middleware(['auth', 'register.viewer'])->prefix('admin')->name('admin.')-
     Route::post('scan', [AssetLookupController::class, 'resolve'])->name('scan.resolve');
     Route::get('labels', [AssetLabelController::class, 'sheet'])->name('labels.sheet');
 
+    /*
+     * The catalogue lists the reports; each one then lives at its own address so a filtered
+     * view can be bookmarked and shared. The slug whitelist keeps `export` from ever being
+     * mistaken for a report name.
+     */
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('reports/excel', [ReportController::class, 'excel'])->name('reports.excel');
-    Route::get('reports/pdf', [ReportController::class, 'pdf'])->name('reports.pdf');
+    Route::get('reports/{slug}', [ReportController::class, 'show'])
+        ->whereIn('slug', ReportCatalog::slugs())
+        ->name('reports.show');
+    Route::get('reports/{slug}/export', [ReportController::class, 'export'])
+        ->whereIn('slug', ReportCatalog::slugs())
+        ->name('reports.export');
 });
 
 Route::middleware(['auth', 'asset.manager'])->prefix('admin')->name('admin.')->group(function () {
@@ -84,7 +94,7 @@ Route::middleware(['auth', 'asset.manager'])->prefix('admin')->name('admin.')->g
 });
 
 Route::middleware(['auth', 'audit.viewer'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('activity-log', [ActivityLogController::class, 'index'])->name('activity_log.index');
+    Route::get('logs', [ActivityLogController::class, 'index'])->name('logs.index');
 });
 
 Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->group(function () {

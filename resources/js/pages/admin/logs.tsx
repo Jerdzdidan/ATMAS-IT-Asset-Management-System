@@ -25,7 +25,7 @@ interface ActivityEntry {
     user: { id: number; name: string; employee_code: string | null } | null;
 }
 
-interface ActivityLogPageProps {
+interface LogsPageProps {
     entries: ActivityEntry[];
     filters: { event: string; from: string | null; to: string | null; search: string };
     eventOptions: { value: AuditEventType; label: string }[];
@@ -35,7 +35,7 @@ interface ActivityLogPageProps {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
-    { title: 'Audit trail', href: '/admin/activity-log' },
+    { title: 'Logs', href: '/admin/logs' },
 ];
 
 /** Destructive events stand out; routine reads and writes stay quiet. */
@@ -59,7 +59,7 @@ function humanizeField(field: string): string {
     return field.replace(/_id$/, '').replace(/_/g, ' ');
 }
 
-export default function ActivityLogPage({ entries, filters, eventOptions, windowSize, isTruncated }: ActivityLogPageProps) {
+export default function LogsPage({ entries, filters, eventOptions, windowSize, isTruncated }: LogsPageProps) {
     const [draft, setDraft] = useState({
         event: filters.event,
         from: filters.from ?? '',
@@ -70,21 +70,21 @@ export default function ActivityLogPage({ entries, filters, eventOptions, window
     function apply(next: Partial<typeof draft>): void {
         const merged = { ...draft, ...next };
         setDraft(merged);
-        router.get('/admin/activity-log', merged, { preserveState: true, preserveScroll: true, replace: true });
+        router.get('/admin/logs', merged, { preserveState: true, preserveScroll: true, replace: true });
     }
 
     function reset(): void {
         const cleared = { event: 'ALL', from: '', to: '', search: '' };
         setDraft(cleared);
-        router.get('/admin/activity-log', {}, { preserveState: true, preserveScroll: true, replace: true });
+        router.get('/admin/logs', {}, { preserveState: true, preserveScroll: true, replace: true });
     }
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Audit trail" />
+            <Head title="Logs" />
             <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
                 <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">Audit trail</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight">Logs</h1>
                     <p className="text-muted-foreground">
                         Every change to the register, with the account that made it. Entries are written automatically and cannot be edited.
                     </p>
@@ -92,9 +92,9 @@ export default function ActivityLogPage({ entries, filters, eventOptions, window
 
                 <div className="bg-card grid gap-4 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-5">
                     <div className="space-y-2 lg:col-span-2">
-                        <Label htmlFor="audit-search">Search</Label>
+                        <Label htmlFor="log-search">Search</Label>
                         <Input
-                            id="audit-search"
+                            id="log-search"
                             value={draft.search}
                             placeholder="Asset tag, description, or person"
                             onChange={(event) => setDraft({ ...draft, search: event.target.value })}
@@ -119,13 +119,13 @@ export default function ActivityLogPage({ entries, filters, eventOptions, window
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="audit-from">From</Label>
-                        <Input id="audit-from" type="date" value={draft.from} onChange={(event) => apply({ from: event.target.value })} />
+                        <Label htmlFor="log-from">From</Label>
+                        <Input id="log-from" type="date" value={draft.from} onChange={(event) => apply({ from: event.target.value })} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="audit-to">To</Label>
+                        <Label htmlFor="log-to">To</Label>
                         <div className="flex gap-2">
-                            <Input id="audit-to" type="date" value={draft.to} onChange={(event) => apply({ to: event.target.value })} />
+                            <Input id="log-to" type="date" value={draft.to} onChange={(event) => apply({ to: event.target.value })} />
                             <Button type="button" variant="outline" size="icon" aria-label="Reset filters" onClick={reset}>
                                 <RotateCcw />
                             </Button>

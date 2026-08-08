@@ -210,3 +210,36 @@
         @apply bg-background text-foreground;
     }
 }
+
+/*
+  Printing a report.
+
+  The application chrome is dropped so the page starts at the report itself, the horizontal
+  scroller is unwrapped so wide tables print in full, and cards are kept off page breaks.
+*/
+@media print {
+    [data-sidebar='sidebar'],
+    .group\/sidebar-wrapper > [data-slot='sidebar'],
+    header:has([data-sidebar='trigger']) {
+        display: none !important;
+    }
+
+    .report-print-surface {
+        gap: 1rem !important;
+        padding: 0 !important;
+    }
+
+    .report-print-surface .overflow-x-auto {
+        overflow: visible !important;
+    }
+
+    .report-print-surface table {
+        width: 100% !important;
+        font-size: 8pt;
+    }
+
+    .report-print-surface section,
+    .report-print-surface [data-slot='card'] {
+        break-inside: avoid;
+    }
+}

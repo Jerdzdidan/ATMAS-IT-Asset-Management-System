@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type AssetCondition, type AssetStatus, type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { ImageOff, Plus, Printer, QrCode } from 'lucide-react';
+import { ArrowDownUp, ImageOff, Plus, Printer, QrCode } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 
@@ -243,6 +243,13 @@ export default function AssetsPage({ assets, categories, departments, currentYea
                                 <Printer /> Print labels
                             </a>
                         </Button>
+                        {permissions.manages_assets && (
+                            <Button asChild variant="outline">
+                                <Link href="/admin/import-export">
+                                    <ArrowDownUp /> Import / Export
+                                </Link>
+                            </Button>
+                        )}
                         {permissions.manages_assets && (
                             <Button onClick={openCreate}>
                                 <Plus /> Register asset

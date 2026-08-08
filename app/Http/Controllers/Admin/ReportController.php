@@ -8,12 +8,16 @@ use App\Exports\ReportExport;
 use App\Http\Controllers\Controller;
 use App\Models\AssetCategory;
 use App\Services\AuditLogger;
-use App\Services\ReportBuilder;
+use App\Services\Reports\ReportBuilder;
+use App\Services\Reports\ReportCatalog;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Excel as ExcelFormat;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ReportController extends Controller
@@ -24,61 +28,156 @@ class ReportController extends Controller
     ) {}
 
     /**
-     * Display the report console with the selected report already rendered.
+     * Display the report catalogue, grouped by the question each report answers.
      */
-    public function index(Request $request): Response
+    public function index(): Response
     {
-        $key = $this->resolveKey($request);
-        $filters = $this->filters($request);
-
-        return Inertia::render('admin/reports', [
-            'definitions' => collect($this->reports->definitions())
-                ->map(fn (array $definition, string $definitionKey): array => ['key' => $definitionKey, ...$definition])
-                ->values()
-                ->all(),
-            'report' => $this->reports->build($key, $request->user(), $filters),
-            'selected' => $key,
-            'filters' => $filters,
-            'departments' => $this->reports->filterableDepartments($request->user()),
-            'categories' => AssetCategory::query()->select(['id', 'name'])->orderBy('name')->get(),
-            'statuses' => collect(AssetStatus::cases())
-                ->map(fn (AssetStatus $status): array => ['value' => $status->value, 'label' => $status->value])
-                ->all(),
-            'generatedAt' => now()->toIso8601String(),
+        return Inertia::render('admin/reports/index', [
+            'groups' => ReportCatalog::grouped(),
         ]);
     }
 
     /**
-     * Download the selected report as an Excel workbook.
+     * Render one report with its headline figures, chart, and paged detail rows.
      */
-    public function excel(Request $request): BinaryFileResponse
+    public function show(Request $request, string $slug): Response|RedirectResponse
     {
-        $key = $this->resolveKey($request);
-        $report = $this->reports->build($key, $request->user(), $this->filters($request));
+        $key = ReportCatalog::keyFromSlug($slug);
 
-        $this->auditLogger->record(AuditEvent::Exported, null, "Exported the \"{$report['title']}\" report to Excel");
+        if ($key === null) {
+            return to_route('admin.reports.index');
+        }
 
-        return (new ReportExport($report))->download(sprintf('%s-%s.xlsx', $key, now()->format('Y-m-d')));
+        $definition = ReportCatalog::definition($key);
+        $filters = $this->filters($request, $key);
+        $built = $this->reports->build($key, $request->user(), $filters, $this->options($request, $key));
+
+        return Inertia::render('admin/reports/'.$slug, [
+            'report' => $definition,
+            'title' => $definition['title'],
+            'description' => $definition['description'],
+            'filters' => $filters,
+            'filterOptions' => [
+                'departments' => $this->reports->filterableDepartments($request->user()),
+                'categories' => AssetCategory::query()->select(['id', 'name'])->orderBy('name')->get(),
+                'statuses' => collect(AssetStatus::cases())
+                    ->map(fn (AssetStatus $status): array => ['value' => $status->value, 'label' => $status->value])
+                    ->all(),
+            ],
+            'availableFilters' => $definition['filters'],
+            'switcher' => ReportCatalog::switcher(),
+            'period' => $this->period($filters),
+            'kpis' => $built['kpis'],
+            'chart' => $built['chart'],
+            'columns' => $definition['columns'],
+            'rows' => $built['rows'],
+        ]);
     }
 
     /**
-     * Download the selected report as a signed-off PDF.
+     * Download the report as a workbook, a CSV, or a signed-off PDF.
      */
-    public function pdf(Request $request): HttpResponse
+    public function export(Request $request, string $slug): BinaryFileResponse|HttpResponse|RedirectResponse
     {
-        $key = $this->resolveKey($request);
-        $report = $this->reports->build($key, $request->user(), $this->filters($request));
+        $key = ReportCatalog::keyFromSlug($slug);
 
-        $this->auditLogger->record(AuditEvent::Exported, null, "Exported the \"{$report['title']}\" report to PDF");
+        if ($key === null) {
+            return to_route('admin.reports.index');
+        }
 
-        // Wide tables only fit across the long edge of the page.
-        return Pdf::loadView('reports.pdf', [
-            'report' => $report,
-            'organisation' => config('app.name'),
-            'generatedBy' => $request->user()->name,
-            'generatedAt' => now(),
-            'logo' => $this->brandMarkDataUri(),
-        ])->setPaper('a4', 'landscape')->download(sprintf('%s-%s.pdf', $key, now()->format('Y-m-d')));
+        $format = $request->string('format')->toString();
+        $definition = ReportCatalog::definition($key);
+        $filters = $this->filters($request, $key);
+        $built = $this->reports->buildForExport($key, $request->user(), $filters, $this->options($request, $key));
+
+        $this->auditLogger->record(
+            AuditEvent::Exported,
+            null,
+            sprintf('Exported the "%s" report as %s', $definition['title'], strtoupper($format ?: 'xlsx')),
+        );
+
+        $filename = sprintf('%s-%s', $slug, now()->format('Y-m-d'));
+
+        if ($format === 'pdf') {
+            // Wide tables only fit across the long edge of the page.
+            return Pdf::loadView('reports.pdf', [
+                'report' => $definition,
+                'columns' => $definition['columns'],
+                'rows' => $built['rows'],
+                'kpis' => $built['kpis'],
+                'period' => $this->period($filters),
+                'organisation' => config('app.name'),
+                'generatedBy' => $request->user()->name,
+                'generatedAt' => now(),
+                'logo' => $this->brandMarkDataUri(),
+            ])->setPaper('a4', 'landscape')->download($filename.'.pdf');
+        }
+
+        $export = new ReportExport($definition['title'], $definition['columns'], $built['rows'], $built['kpis']);
+
+        return $format === 'csv'
+            ? $export->download($filename.'.csv', ExcelFormat::CSV)
+            : $export->download($filename.'.xlsx');
+    }
+
+    /**
+     * The filters the report actually understands, ignoring anything it does not offer.
+     *
+     * @return array{department_id: int|null, category_id: int|null, status: string|null, from: string|null, to: string|null}
+     */
+    private function filters(Request $request, string $key): array
+    {
+        $available = ReportCatalog::filtersFor($key);
+
+        return [
+            'department_id' => in_array('department', $available, true) ? ($request->integer('department_id') ?: null) : null,
+            'category_id' => in_array('category', $available, true) ? ($request->integer('category_id') ?: null) : null,
+            'status' => in_array('status', $available, true) ? ($request->string('status')->toString() ?: null) : null,
+            'from' => in_array('dates', $available, true) ? $request->date('from')?->toDateString() : null,
+            'to' => in_array('dates', $available, true) ? $request->date('to')?->toDateString() : null,
+        ];
+    }
+
+    /**
+     * Sorting and paging, falling back to the report's natural order.
+     *
+     * @return array{sort: string|null, direction: string, page: int, per_page: int}
+     */
+    private function options(Request $request, string $key): array
+    {
+        $columnKeys = array_column(ReportCatalog::columns($key), 'key');
+        $sort = $request->string('sort')->toString();
+        $perPage = (int) $request->integer('per_page');
+
+        return [
+            'sort' => in_array($sort, $columnKeys, true) ? $sort : null,
+            'direction' => $request->string('direction')->toString() === 'asc' ? 'asc' : 'desc',
+            'page' => max(1, (int) $request->integer('page', 1)),
+            'per_page' => in_array($perPage, [25, 50, 100], true) ? $perPage : 25,
+        ];
+    }
+
+    /**
+     * A human sentence describing the window the figures cover.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    private function period(array $filters): string
+    {
+        $from = $filters['from'] ?? null;
+        $to = $filters['to'] ?? null;
+
+        if ($from === null && $to === null) {
+            return 'All records to date';
+        }
+
+        $format = fn (?string $date): string => $date === null ? '' : Carbon::parse($date)->format('d M Y');
+
+        return match (true) {
+            $from !== null && $to !== null => $format($from).' – '.$format($to),
+            $from !== null => 'From '.$format($from),
+            default => 'Up to '.$format($to),
+        };
     }
 
     /**
@@ -93,29 +192,5 @@ class ReportController extends Controller
         return is_file($path)
             ? 'data:image/png;base64,'.base64_encode((string) file_get_contents($path))
             : '';
-    }
-
-    /**
-     * The report requested, falling back to the inventory sheet.
-     */
-    private function resolveKey(Request $request): string
-    {
-        $key = $request->string('report')->toString();
-
-        return array_key_exists($key, $this->reports->definitions()) ? $key : 'inventory';
-    }
-
-    /**
-     * @return array{department_id: int|null, category_id: int|null, status: string|null, from: string|null, to: string|null}
-     */
-    private function filters(Request $request): array
-    {
-        return [
-            'department_id' => $request->integer('department_id') ?: null,
-            'category_id' => $request->integer('category_id') ?: null,
-            'status' => $request->string('status')->toString() ?: null,
-            'from' => $request->date('from')?->toDateString(),
-            'to' => $request->date('to')?->toDateString(),
-        ];
     }
 }

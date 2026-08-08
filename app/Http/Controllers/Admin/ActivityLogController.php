@@ -49,7 +49,7 @@ class ActivityLogController extends Controller
             ->limit(self::WINDOW)
             ->get();
 
-        return Inertia::render('admin/activity-log', [
+        return Inertia::render('admin/logs', [
             'entries' => $entries,
             'filters' => $filters,
             'eventOptions' => collect(AuditEvent::cases())
