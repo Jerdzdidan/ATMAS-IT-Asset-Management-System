@@ -20,7 +20,7 @@ class UserSeeder extends Seeder
         $accounts = [
             [
                 'name' => 'System Administrator',
-                'email' => 'admin@atmas.test',
+                'email' => 'admin@gmail.com',
                 'role' => UserRole::SuperAdmin,
                 'employee_code' => '21-00001',
                 'position' => 'IT Manager',
@@ -28,7 +28,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Ivan Torres',
-                'email' => 'itstaff@atmas.test',
+                'email' => 'itstaff@gmail.com',
                 'role' => UserRole::ItStaff,
                 'employee_code' => '21-00002',
                 'position' => 'IT Support Specialist',
@@ -36,7 +36,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Marisol Cruz',
-                'email' => 'depthead@atmas.test',
+                'email' => 'depthead@gmail.com',
                 'role' => UserRole::DepartmentHead,
                 'employee_code' => '21-00004',
                 'position' => 'Accounting Manager',
@@ -44,7 +44,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Rogelio Villanueva',
-                'email' => 'management@atmas.test',
+                'email' => 'management@gmail.com',
                 'role' => UserRole::Management,
                 'employee_code' => '20-00005',
                 'position' => 'Chief Operating Officer',
@@ -52,7 +52,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Cecilia Bautista',
-                'email' => 'auditor@atmas.test',
+                'email' => 'auditor@gmail.com',
                 'role' => UserRole::Auditor,
                 'employee_code' => '22-00006',
                 'position' => 'Internal Auditor',
@@ -60,7 +60,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Elena Ramos',
-                'email' => 'employee@atmas.test',
+                'email' => 'employee@gmail.com',
                 'role' => UserRole::Employee,
                 'employee_code' => '22-00003',
                 'position' => 'Accounting Assistant',

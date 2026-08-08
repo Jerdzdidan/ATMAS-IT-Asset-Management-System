@@ -5,8 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/react';
-import { AlertTriangle, Download, FileDown, FileUp, Upload } from 'lucide-react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { AlertTriangle, ArrowLeft, Download, FileDown, FileUp, Upload } from 'lucide-react';
 import { type FormEvent } from 'react';
 
 interface ImportExportPageProps {
@@ -17,6 +17,7 @@ interface ImportExportPageProps {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
+    { title: 'Assets', href: '/admin/assets' },
     { title: 'Import / Export', href: '/admin/import-export' },
 ];
 
@@ -37,6 +38,14 @@ export default function ImportExportPage({ columns, categories, departments }: I
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Import and export" />
             <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+                <Link
+                    href="/admin/assets"
+                    className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -mb-2 inline-flex w-fit items-center gap-1.5 rounded-md text-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden"
+                >
+                    <ArrowLeft className="size-4" />
+                    Back to asset register
+                </Link>
+
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight">Import and export</h1>
                     <p className="text-muted-foreground">Move the register in and out of Excel for bulk edits, migrations, and offline review.</p>

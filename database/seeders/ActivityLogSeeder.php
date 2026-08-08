@@ -21,8 +21,8 @@ class ActivityLogSeeder extends Seeder
      */
     public function run(): void
     {
-        $itStaff = User::query()->where('email', 'itstaff@atmas.test')->first();
-        $superAdmin = User::query()->where('email', 'admin@atmas.test')->first();
+        $itStaff = User::query()->where('email', 'itstaff@gmail.com')->first();
+        $superAdmin = User::query()->where('email', 'admin@gmail.com')->first();
 
         if ($itStaff === null || $superAdmin === null) {
             return;

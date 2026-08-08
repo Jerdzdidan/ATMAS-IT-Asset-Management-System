@@ -774,12 +774,12 @@ Password for all: `password`
 
 | Email | Role |
 |---|---|
-| `admin@atmas.test` | Super Administrator |
-| `itstaff@atmas.test` | Administrator (IT Staff) |
-| `depthead@atmas.test` | Department Head (Accounting) |
-| `management@atmas.test` | Management |
-| `auditor@atmas.test` | Auditor |
-| `employee@atmas.test` | Employee |
+| `admin@gmail.com` | Super Administrator |
+| `itstaff@gmail.com` | Administrator (IT Staff) |
+| `depthead@gmail.com` | Department Head (Accounting) |
+| `management@gmail.com` | Management |
+| `auditor@gmail.com` | Auditor |
+| `employee@gmail.com` | Employee |
 
 > These exist for demonstration and testing. **Delete or deactivate every one of them before the
 > system carries real data.**
