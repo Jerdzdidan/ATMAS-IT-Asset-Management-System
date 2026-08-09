@@ -206,6 +206,11 @@ link back to the register.
 
 ### The dashboard
 
+The dashboard opens with a greeting naming you, the date, and when the figures were built. Under it
+is a one-line read of what is waiting — overdue services, open tickets, warranties running out — or
+confirmation that nothing needs attention. Everything it counts respects your role, so a Department
+Head's greeting describes their own department's hardware.
+
 The dashboard is the first thing you see. Six counters run across the top:
 
 | Counter | What it means | Act when… |
@@ -358,6 +363,11 @@ Everything known about one device:
 - **Preventive maintenance** — the plans attached to it
 - **Assignment history** — every handover, ever
 - **Maintenance history** — every repair and service
+
+The buttons across the top are **Download label**, **Edit**, **Issue asset** or **Record return**,
+and **Retire** or **Restore** — the last three for IT Staff only. **Edit** opens the same form the
+register list uses, so you can correct a serial number or add a purchase cost without going back to
+the list to find the row again.
 
 ### 5.4 Photographs
 

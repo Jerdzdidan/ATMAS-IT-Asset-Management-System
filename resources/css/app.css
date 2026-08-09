@@ -64,6 +64,8 @@
     --color-brand: var(--brand);
     --color-brand-foreground: var(--brand-foreground);
     --color-brand-soft: var(--brand-soft);
+    --color-brand-deep: var(--brand-deep);
+    --color-brand-glow: var(--brand-glow);
 
     --color-success: var(--success);
     --color-success-foreground: var(--success-foreground);
@@ -138,6 +140,13 @@
     --brand: hsl(227, 47%, 42%);
     --brand-foreground: hsl(0, 0%, 100%);
     --brand-soft: hsl(227, 60%, 96%);
+    /*
+      The dashboard masthead commits to the deep brand navy in both themes rather than following
+      --brand, which inverts to a pale blue in the dark palette. A pale panel there would shout
+      over the cards below it, and white text has to stay readable on it either way.
+    */
+    --brand-deep: hsl(227, 47%, 22%);
+    --brand-glow: hsl(227, 70%, 58%);
     --success: hsl(158, 100%, 24%);
     --success-foreground: hsl(0, 0%, 100%);
     --warning: hsl(19, 92%, 42%);
@@ -184,6 +193,9 @@
     --brand: hsl(227, 72%, 68%);
     --brand-foreground: hsl(227, 40%, 12%);
     --brand-soft: hsl(227, 30%, 18%);
+    /* Deliberately unchanged from the light palette; see the note there. */
+    --brand-deep: hsl(227, 47%, 22%);
+    --brand-glow: hsl(227, 70%, 58%);
     --success: hsl(158, 60%, 45%);
     --success-foreground: hsl(227, 40%, 10%);
     --warning: hsl(19, 95%, 62%);

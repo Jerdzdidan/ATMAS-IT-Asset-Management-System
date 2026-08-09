@@ -1,3 +1,4 @@
+import { AssetFormDialog } from '@/components/admin/asset-form-dialog';
 import { AssetConditionBadge, AssetStatusBadge, MaintenanceStatusBadge, maintenanceFrequencyLabels } from '@/components/status-badges';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +22,19 @@ import {
     type SharedData,
 } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeft, ArrowLeftRight, ChevronLeft, ChevronRight, ImageDown, ImagePlus, PackageCheck, RotateCcw, Star, Trash2 } from 'lucide-react';
+import {
+    ArrowLeft,
+    ArrowLeftRight,
+    ChevronLeft,
+    ChevronRight,
+    ImageDown,
+    ImagePlus,
+    PackageCheck,
+    Pencil,
+    RotateCcw,
+    Star,
+    Trash2,
+} from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 
@@ -52,6 +65,7 @@ interface AssetDetail {
     id: number;
     asset_tag: string;
     name: string;
+    asset_category_id: number;
     brand: string | null;
     model: string | null;
     serial_number: string | null;
@@ -72,6 +86,7 @@ interface AssetDetail {
 
 interface AssetShowPageProps {
     asset: AssetDetail;
+    categories: { id: number; name: string }[];
     currentAssignment: AssignmentRecord | null;
     assignableUsers: { id: number; name: string; employee_code: string | null }[];
     qrCode: string;
@@ -93,10 +108,11 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
     );
 }
 
-export default function AssetShowPage({ asset, currentAssignment, assignableUsers, qrCode, labelPngUrl }: AssetShowPageProps) {
+export default function AssetShowPage({ asset, categories, currentAssignment, assignableUsers, qrCode, labelPngUrl }: AssetShowPageProps) {
     const { permissions } = usePage<SharedData>().props.auth;
     const [assignOpen, setAssignOpen] = useState(false);
     const [returnOpen, setReturnOpen] = useState(false);
+    const [editOpen, setEditOpen] = useState(false);
     /** Which photo the viewer is showing, or null while it is closed. */
     const [viewedPhoto, setViewedPhoto] = useState<number | null>(null);
 
@@ -224,6 +240,9 @@ export default function AssetShowPage({ asset, currentAssignment, assignableUser
                         </Button>
                         {permissions.manages_assets && (
                             <>
+                                <Button variant="outline" onClick={() => setEditOpen(true)}>
+                                    <Pencil /> Edit
+                                </Button>
                                 {asset.status === 'AVAILABLE' && (
                                     <Button onClick={() => setAssignOpen(true)}>
                                         <ArrowLeftRight /> Issue asset
@@ -551,6 +570,8 @@ export default function AssetShowPage({ asset, currentAssignment, assignableUser
                     </CardContent>
                 </Card>
             </div>
+
+            <AssetFormDialog open={editOpen} onOpenChange={setEditOpen} asset={asset} categories={categories} />
 
             <Dialog open={assignOpen} onOpenChange={(open) => !assignForm.processing && setAssignOpen(open)}>
                 <DialogContent>

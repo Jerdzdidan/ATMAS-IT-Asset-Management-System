@@ -89,6 +89,8 @@ class AssetController extends Controller
 
         return Inertia::render('admin/asset-show', [
             'asset' => $asset,
+            // Feeds the edit dialog, which is the same form the register list opens.
+            'categories' => AssetCategory::query()->select(['id', 'name'])->orderBy('name')->get(),
             'currentAssignment' => $asset->assignments->firstWhere('returned_at', null),
             'assignableUsers' => User::query()
                 ->select(['id', 'name', 'employee_code'])

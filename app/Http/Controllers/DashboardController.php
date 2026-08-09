@@ -43,6 +43,9 @@ class DashboardController extends Controller
             ->all();
 
         return Inertia::render('dashboard', [
+            // Stamped by the server so the masthead reports when the figures were built, not when
+            // the browser happened to render them.
+            'generatedAt' => now()->toIso8601String(),
             'statistics' => [
                 'total_assets' => array_sum($statusCounts),
                 'available' => $statusCounts[AssetStatus::Available->value] ?? 0,
@@ -96,6 +99,7 @@ class DashboardController extends Controller
         $userId = $request->user()->id;
 
         return Inertia::render('employee/dashboard', [
+            'generatedAt' => now()->toIso8601String(),
             'assignedAssets' => Asset::query()
                 ->select(['id', 'asset_tag', 'name', 'asset_category_id', 'status', 'condition'])
                 ->with('category:id,name')
