@@ -106,10 +106,6 @@ class DashboardController extends Controller
                 ->heldBy($userId)
                 ->orderBy('asset_tag')
                 ->get(),
-            'openRequestCount' => MaintenanceRequest::query()
-                ->where('requested_by_id', $userId)
-                ->whereIn('status', [MaintenanceRequestStatus::Pending, MaintenanceRequestStatus::InProgress])
-                ->count(),
             'recentRequests' => MaintenanceRequest::query()
                 ->with('asset:id,asset_tag,name')
                 ->where('requested_by_id', $userId)

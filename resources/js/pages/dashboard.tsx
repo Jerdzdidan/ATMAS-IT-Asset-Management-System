@@ -69,33 +69,12 @@ function StatCard({
     );
 }
 
-/**
- * Name what is waiting, so the greeting says something the cards below do not already shout.
- */
-function attentionSummary(statistics: DashboardPageProps['statistics']): string {
-    const outstanding = [
-        statistics.overdue_maintenance > 0 &&
-            `${statistics.overdue_maintenance} overdue ${statistics.overdue_maintenance === 1 ? 'service' : 'services'}`,
-        statistics.open_requests > 0 && `${statistics.open_requests} open ${statistics.open_requests === 1 ? 'ticket' : 'tickets'}`,
-        statistics.warranty_expiring > 0 &&
-            `${statistics.warranty_expiring} ${statistics.warranty_expiring === 1 ? 'warranty' : 'warranties'} ending soon`,
-    ].filter((part): part is string => typeof part === 'string');
-
-    if (outstanding.length === 0) {
-        return `All ${statistics.total_assets} assets are accounted for, with nothing overdue and no open tickets.`;
-    }
-
-    const listed = outstanding.length === 1 ? outstanding[0] : `${outstanding.slice(0, -1).join(', ')} and ${outstanding[outstanding.length - 1]}`;
-
-    return `You have ${listed} waiting.`;
-}
-
 export default function DashboardPage({ statistics, generatedAt, upcomingMaintenance, recentAssignments, recentRequests }: DashboardPageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
             <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-                <DashboardMasthead summary={attentionSummary(statistics)} generatedAt={generatedAt} />
+                <DashboardMasthead generatedAt={generatedAt} />
                 <DepartmentScopeNote noun="figures" />
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

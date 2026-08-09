@@ -4,7 +4,7 @@ namespace App\Enums;
 
 enum UserRole: string
 {
-    case SuperAdmin = 'SUPER_ADMIN';
+    case Admin = 'ADMIN';
     case ItStaff = 'IT_STAFF';
     case DepartmentHead = 'DEPARTMENT_HEAD';
     case Management = 'MANAGEMENT';
@@ -16,7 +16,7 @@ enum UserRole: string
      */
     public function managesAssets(): bool
     {
-        return in_array($this, [self::SuperAdmin, self::ItStaff], true);
+        return in_array($this, [self::Admin, self::ItStaff], true);
     }
 
     /**
@@ -24,7 +24,7 @@ enum UserRole: string
      */
     public function managesUsers(): bool
     {
-        return $this === self::SuperAdmin;
+        return $this === self::Admin;
     }
 
     /**
@@ -45,7 +45,7 @@ enum UserRole: string
      */
     public function viewsAuditTrail(): bool
     {
-        return in_array($this, [self::SuperAdmin, self::Auditor, self::DepartmentHead], true);
+        return in_array($this, [self::Admin, self::Auditor, self::DepartmentHead], true);
     }
 
     /**
@@ -59,8 +59,8 @@ enum UserRole: string
     public function label(): string
     {
         return match ($this) {
-            self::SuperAdmin => 'Super Administrator',
-            self::ItStaff => 'Administrator (IT Staff)',
+            self::Admin => 'Administrator',
+            self::ItStaff => 'IT Staff',
             self::DepartmentHead => 'Department Head',
             self::Management => 'Management',
             self::Auditor => 'Auditor',
@@ -74,7 +74,7 @@ enum UserRole: string
     public function description(): string
     {
         return match ($this) {
-            self::SuperAdmin => 'Full access to every module, user management, and settings.',
+            self::Admin => 'Full access to every module, user management, and settings.',
             self::ItStaff => 'Manages assets, records, inventory operations, and the repair queue.',
             self::DepartmentHead => 'Views the assets allocated to their own department.',
             self::Management => 'Views dashboards and summaries without editing records.',

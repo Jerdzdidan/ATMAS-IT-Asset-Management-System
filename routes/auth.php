@@ -8,8 +8,8 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
 /*
- * ATMAS is an internal register, so there is no self-service door into it: the Super Administrator
- * issues every account from the Users module and resets passwords there too. Registration and the
+ * ATMAS is an internal register, so there is no self-service door into it: the Administrator issues
+ * every account from the Users module and resets passwords there too. Registration and the
  * forgotten-password flow are therefore not routed at all — dropping the links from the login page
  * would only hide them, and anyone could still reach the forms by typing the address.
  */

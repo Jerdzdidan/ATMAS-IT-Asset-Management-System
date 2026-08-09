@@ -22,9 +22,9 @@ class ActivityLogSeeder extends Seeder
     public function run(): void
     {
         $itStaff = User::query()->where('email', 'itstaff@gmail.com')->first();
-        $superAdmin = User::query()->where('email', 'admin@gmail.com')->first();
+        $admin = User::query()->where('email', 'admin@gmail.com')->first();
 
-        if ($itStaff === null || $superAdmin === null) {
+        if ($itStaff === null || $admin === null) {
             return;
         }
 
@@ -55,7 +55,7 @@ class ActivityLogSeeder extends Seeder
         // Retirements, so the trail explains the assets that left the active pool.
         foreach (Asset::query()->where('status', 'RETIRED')->get() as $asset) {
             $entries->push([
-                'actor' => $superAdmin,
+                'actor' => $admin,
                 'event' => AuditEvent::Retired,
                 'subject' => $asset,
                 'description' => "Retired asset {$asset->asset_tag} at end of service life",

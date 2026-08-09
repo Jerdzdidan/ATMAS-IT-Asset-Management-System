@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Middleware\EnsureUserIsSuperAdmin;
+use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserManagesAssets;
 use App\Http\Middleware\EnsureUserViewsAuditTrail;
 use App\Http\Middleware\EnsureUserViewsRegister;
@@ -22,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
         $middleware->alias([
-            'super.admin' => EnsureUserIsSuperAdmin::class,
+            'admin' => EnsureUserIsAdmin::class,
             'asset.manager' => EnsureUserManagesAssets::class,
             'register.viewer' => EnsureUserViewsRegister::class,
             'audit.viewer' => EnsureUserViewsAuditTrail::class,

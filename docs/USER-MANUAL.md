@@ -54,7 +54,7 @@ There are six roles. Each person has exactly one. The role decides what they see
 change, and it is enforced by the server — hiding a button is a convenience, not the security
 boundary.
 
-### 2.1 Super Administrator
+### 2.1 Administrator
 
 **Who:** The IT Manager, or whoever owns the system itself.
 
@@ -62,14 +62,14 @@ boundary.
 - Creating, editing, and deactivating every user account
 - Assigning roles — **this is the only role that can do so**
 - Maintaining the department list and the asset category list
-- Everything the Administrator (IT Staff) role can do
+- Everything the IT Staff role can do
 - Reading the Logs
 
-**Accounts do not self-register.** A new hire gets an ATMAS account because the Super Administrator
-creates one. When someone leaves, the Super Administrator sets their account to **Inactive** rather
+**Accounts do not self-register.** A new hire gets an ATMAS account because the Administrator
+creates one. When someone leaves, the Administrator sets their account to **Inactive** rather
 than deleting it — deleting would orphan their custody history.
 
-### 2.2 Administrator (IT Staff)
+### 2.2 IT Staff
 
 **Who:** The IT technicians who physically handle the hardware.
 
@@ -146,7 +146,7 @@ with IT Staff, who make the change.
 
 ### 2.7 Permission matrix
 
-| | Super Admin | IT Staff | Dept. Head | Management | Auditor | Employee |
+| | Admin | IT Staff | Dept. Head | Management | Auditor | Employee |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | View asset register | All | All | Own dept. | All | All | — |
 | Register / edit assets | ✅ | ✅ | — | — | — | — |
@@ -170,12 +170,12 @@ with IT Staff, who make the change.
 ### Signing in
 
 Go to the ATMAS address, enter your work email and password, and press **Log in**. If you have
-forgotten your password, ask the Super Administrator to reset it — there is no self-service reset,
+forgotten your password, ask the Administrator to reset it — there is no self-service reset,
 and no sign-up. Both would be doors into an internal register, so neither the links nor the pages
 behind them exist. Once you are in, you can change your own password under **Settings → Password**.
 
 If your account has been set to **Inactive**, sign-in is refused. That is normal for someone who
-has left; contact the Super Administrator if it happens to you unexpectedly.
+has left; contact the Administrator if it happens to you unexpectedly.
 
 Every sign-in and sign-out is recorded in the Logs.
 
@@ -197,7 +197,7 @@ What you see depends on your role. The full set is:
 | **My Workspace** | My Assets | What *you* are holding |
 | | My Requests | Faults *you* have reported |
 
-**My Workspace is always visible, to everyone.** Even the Super Administrator is issued a laptop
+**My Workspace is always visible, to everyone.** Even the Administrator is issued a laptop
 and reports their own faults through it.
 
 **Scan, Labels, and Import / Export are not in the sidebar.** They belong to the register rather
@@ -206,10 +206,11 @@ link back to the register.
 
 ### The dashboard
 
-The dashboard opens with a greeting naming you, the date, and when the figures were built. Under it
-is a one-line read of what is waiting — overdue services, open tickets, warranties running out — or
-confirmation that nothing needs attention. Everything it counts respects your role, so a Department
-Head's greeting describes their own department's hardware.
+The dashboard opens with a greeting naming you in full, the role you hold, the department you
+belong to if you belong to one, and the date. It introduces the session rather than reporting on
+it — what is waiting is left to the counters below, which say it more precisely than a sentence
+can. Everything they count respects your role, so a Department Head's figures cover their own
+department's hardware.
 
 The dashboard is the first thing you see. Six counters run across the top:
 
@@ -291,7 +292,7 @@ department, copied onto the asset so reports and access scoping have one column 
 
 ## 5. The asset register
 
-**Who:** IT Staff and Super Administrator can change it. Department Heads, Management, and Auditors
+**Who:** IT Staff and Administrator can change it. Department Heads, Management, and Auditors
 can read it.
 
 ### 5.1 Registering a new asset
@@ -399,7 +400,7 @@ retired, never deleted. Deletion exists only for correcting a mistyped entry mad
 
 ## 6. Custody — issuing and returning hardware
 
-**Who:** IT Staff and Super Administrator.
+**Who:** IT Staff and Administrator.
 
 ### 6.1 Issuing
 
@@ -507,7 +508,7 @@ register stays truthful at every one.
 
 ## 8. Preventive maintenance schedules
 
-**Who:** IT Staff and Super Administrator set them up and complete them. Everyone with register
+**Who:** IT Staff and Administrator set them up and complete them. Everyone with register
 access can see them.
 
 Reactive repair waits for something to break. Preventive maintenance stops it breaking. **PM
@@ -604,7 +605,7 @@ rather than shown the record.
 
 ## 10. Import and export
 
-**Who:** IT Staff and Super Administrator. **Assets → Import / Export.**
+**Who:** IT Staff and Administrator. **Assets → Import / Export.**
 
 ### 10.1 Exporting
 
@@ -726,11 +727,11 @@ both are the usual causes of a count that will not reconcile.
 
 ## 12. Logs
 
-**Who:** Super Administrator and Auditor see everything. Department Heads see entries for their own
+**Who:** Administrator and Auditor see everything. Department Heads see entries for their own
 department's assets plus their own actions. Nobody else has access.
 
 Every change is recorded automatically, and **no one can edit or delete an entry** — including the
-Super Administrator. That is what makes it evidence.
+Administrator. That is what makes it evidence.
 
 ### 12.1 What each entry holds
 
@@ -756,7 +757,7 @@ last month" and "who was signed in on the 3rd."
 
 ## 13. Administration — users, departments, categories
 
-### 13.1 Users — Super Administrator only
+### 13.1 Users — Administrator only
 
 **Users → Add user.** Name, email, password, role, employee code, department, position, contact
 number, status.
@@ -769,12 +770,12 @@ sign in, and they can no longer be issued equipment, but their custody history s
 > Before deactivating, **record the return of everything they hold**. An inactive account still
 > holding a laptop is a laptop nobody is accountable for.
 
-### 13.2 Departments — Super Administrator only
+### 13.2 Departments — Administrator only
 
 Name and a short code. The code is used by the spreadsheet importer, so keep it short and stable.
 Departments drive asset ownership, department-head scoping, and every departmental report.
 
-### 13.3 Categories — IT Staff and Super Administrator
+### 13.3 Categories — IT Staff and Administrator
 
 Name and description. Categories classify the register and drive reporting; they take no part in
 the asset tag, so renaming one is safe at any time and never invalidates a printed label.
@@ -837,8 +838,8 @@ Password for all: `password`
 
 | Email | Role |
 |---|---|
-| `admin@gmail.com` | Super Administrator |
-| `itstaff@gmail.com` | Administrator (IT Staff) |
+| `admin@gmail.com` | Administrator |
+| `itstaff@gmail.com` | IT Staff |
 | `depthead@gmail.com` | Department Head (Accounting) |
 | `management@gmail.com` | Management |
 | `auditor@gmail.com` | Auditor |

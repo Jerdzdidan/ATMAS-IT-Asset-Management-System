@@ -5,8 +5,8 @@ type BadgeVariant = 'success' | 'info' | 'warning' | 'danger' | 'neutral';
 
 /** Kept in step with App\Enums\UserRole. Lives here so any screen can name a role, not just Users. */
 export const userRoleLabels: Record<UserRole, string> = {
-    SUPER_ADMIN: 'Super Administrator',
-    IT_STAFF: 'Administrator (IT Staff)',
+    ADMIN: 'Administrator',
+    IT_STAFF: 'IT Staff',
     DEPARTMENT_HEAD: 'Department Head',
     MANAGEMENT: 'Management',
     AUDITOR: 'Auditor',

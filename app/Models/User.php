@@ -21,9 +21,9 @@ class User extends Authenticatable
     /**
      * Determine whether the user has unrestricted access to every module.
      */
-    public function isSuperAdmin(): bool
+    public function isAdmin(): bool
     {
-        return $this->role === UserRole::SuperAdmin;
+        return $this->role === UserRole::Admin;
     }
 
     /**

@@ -21,7 +21,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'System Administrator',
                 'email' => 'admin@gmail.com',
-                'role' => UserRole::SuperAdmin,
+                'role' => UserRole::Admin,
                 'employee_code' => '21-00001',
                 'position' => 'IT Manager',
                 'department' => 'IT',

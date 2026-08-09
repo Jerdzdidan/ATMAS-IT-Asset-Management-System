@@ -81,7 +81,7 @@ export default function Login({ status }: LoginProps) {
                     </Button>
                 </div>
 
-                {/* Accounts are issued by the Super Administrator, so there is nothing to sign up for
+                {/* Accounts are issued by the Administrator, so there is nothing to sign up for
                     and nothing to self-reset. Both are handled from the Users module. */}
                 <p className="text-muted-foreground text-center text-sm">Need an account, or locked out? Ask your IT administrator.</p>
             </form>

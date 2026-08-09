@@ -52,7 +52,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 /** Kept in step with App\Enums\UserRole so the picker explains what each role unlocks. */
 const roleDescriptions: Record<UserRole, string> = {
-    SUPER_ADMIN: 'Full access to every module, user management, and settings.',
+    ADMIN: 'Full access to every module, user management, and settings.',
     IT_STAFF: 'Manages assets, records, inventory operations, and the repair queue.',
     DEPARTMENT_HEAD: 'Views the assets allocated to their own department.',
     MANAGEMENT: 'Views dashboards and summaries without editing records.',

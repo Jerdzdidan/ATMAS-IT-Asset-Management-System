@@ -102,7 +102,7 @@ Route::middleware(['auth', 'audit.viewer'])->prefix('admin')->name('admin.')->gr
     Route::get('logs', [ActivityLogController::class, 'index'])->name('logs.index');
 });
 
-Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('departments', DepartmentController::class)->only(['index', 'store', 'update', 'destroy']);
 });

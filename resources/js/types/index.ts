@@ -1,6 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 
-export type UserRole = 'SUPER_ADMIN' | 'IT_STAFF' | 'DEPARTMENT_HEAD' | 'MANAGEMENT' | 'AUDITOR' | 'EMPLOYEE';
+export type UserRole = 'ADMIN' | 'IT_STAFF' | 'DEPARTMENT_HEAD' | 'MANAGEMENT' | 'AUDITOR' | 'EMPLOYEE';
 export type AssetStatus = 'AVAILABLE' | 'ASSIGNED' | 'UNDER_REPAIR' | 'RETIRED';
 export type AssetCondition = 'NEW' | 'GOOD' | 'FAIR' | 'POOR';
 export type MaintenanceRequestStatus = 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'REJECTED';

@@ -44,9 +44,9 @@ class UserFactory extends Factory
     /**
      * Indicate that the account has full administrative access.
      */
-    public function superAdmin(): static
+    public function admin(): static
     {
-        return $this->state(fn (array $attributes) => ['role' => UserRole::SuperAdmin]);
+        return $this->state(fn (array $attributes) => ['role' => UserRole::Admin]);
     }
 
     /**

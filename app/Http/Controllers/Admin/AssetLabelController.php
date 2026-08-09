@@ -10,12 +10,26 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AssetLabelController extends Controller
 {
+    /**
+     * How much text one line of a sticker holds before it would wrap onto a second.
+     *
+     * Measured against the column the sheet gives each label. The PNG does the same job by
+     * measuring glyphs, which a Blade template has no way to do.
+     */
+    private const NAME_LIMIT = 26;
+
+    private const DETAIL_LIMIT = 42;
+
+    /** A non-breaking space, so a field the asset does not carry still occupies its line. */
+    private const BLANK_LINE = "\u{00A0}";
+
     public function __construct(
         private readonly AssetQrCodeGenerator $qrCodes,
         private readonly AssetLabelImageGenerator $labelImages,
@@ -142,14 +156,27 @@ class AssetLabelController extends Controller
      */
     private function labelData(Collection $assets): array
     {
-        return $assets->map(fn (Asset $asset): array => [
-            'asset_tag' => $asset->asset_tag,
-            'name' => $asset->name,
-            'category' => $asset->category?->name,
-            'department' => $asset->department?->name,
-            'serial_number' => $asset->serial_number,
-            'qr' => $this->qrCodes->dataUri($asset, 260),
-        ])->values()->all();
+        return $assets->map(function (Asset $asset): array {
+            $classification = array_filter([$asset->category?->name, $asset->department?->name]);
+
+            return [
+                'asset_tag' => $asset->asset_tag,
+                /*
+                 * Every sticker carries the same three text lines, each trimmed to the column it
+                 * sits in. A line that wrapped, or one dropped because the asset does not carry
+                 * the field, left that label shorter than the ones beside it, and the row centred
+                 * them all independently — which is what made the sheet look crooked.
+                 */
+                'name' => Str::limit($asset->name, self::NAME_LIMIT),
+                'classification' => $classification === []
+                    ? self::BLANK_LINE
+                    : Str::limit(implode(' · ', $classification), self::DETAIL_LIMIT),
+                'serial_line' => filled($asset->serial_number)
+                    ? Str::limit('SN: '.$asset->serial_number, self::DETAIL_LIMIT)
+                    : self::BLANK_LINE,
+                'qr' => $this->qrCodes->dataUri($asset, 260),
+            ];
+        })->values()->all();
     }
 
     /**

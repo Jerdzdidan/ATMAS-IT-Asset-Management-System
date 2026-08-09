@@ -17,7 +17,6 @@ interface EmployeeDashboardPageProps {
         condition: AssetCondition;
         category: { id: number; name: string } | null;
     }[];
-    openRequestCount: number;
     generatedAt: string;
     recentRequests: {
         id: number;
@@ -30,19 +29,12 @@ interface EmployeeDashboardPageProps {
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Dashboard', href: '/dashboard' }];
 
-export default function EmployeeDashboardPage({ assignedAssets, openRequestCount, generatedAt, recentRequests }: EmployeeDashboardPageProps) {
-    const assetCount = assignedAssets.length;
-    const summary =
-        assetCount === 0
-            ? 'You are not holding any company hardware at the moment.'
-            : `You are accountable for ${assetCount} ${assetCount === 1 ? 'asset' : 'assets'}, with ` +
-              `${openRequestCount === 0 ? 'no open requests' : `${openRequestCount} open ${openRequestCount === 1 ? 'request' : 'requests'}`}.`;
-
+export default function EmployeeDashboardPage({ assignedAssets, generatedAt, recentRequests }: EmployeeDashboardPageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
             <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-                <DashboardMasthead summary={summary} generatedAt={generatedAt} />
+                <DashboardMasthead generatedAt={generatedAt} />
 
                 <Card>
                     <CardHeader className="flex flex-row items-start justify-between gap-4">
