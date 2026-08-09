@@ -174,6 +174,9 @@ forgotten your password, ask the Administrator to reset it — there is no self-
 and no sign-up. Both would be doors into an internal register, so neither the links nor the pages
 behind them exist. Once you are in, you can change your own password under **Settings → Password**.
 
+**Signing in always opens the dashboard**, even if a link or an expired session sent you to the
+login page from somewhere else. Go on from there.
+
 If your account has been set to **Inactive**, sign-in is refused. That is normal for someone who
 has left; contact the Administrator if it happens to you unexpectedly.
 

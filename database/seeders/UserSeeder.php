@@ -7,9 +7,17 @@ use App\Models\Department;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
+    /**
+     * Addresses already handed out in this run, so two similar names cannot collide.
+     *
+     * @var list<string>
+     */
+    private array $issuedAddresses = [];
+
     /**
      * Seed one account per role plus a pool of employees who can hold assets.
      */
@@ -92,6 +100,42 @@ class UserSeeder extends Seeder
                 'department_id' => $departmentIds[$sequence->index % count($departmentIds)],
                 'employee_code' => sprintf('23-%05d', $sequence->index + 100),
             ])
-            ->create();
+            ->create()
+            // Set afterwards rather than through a state: Laravel rebinds a state closure to the
+            // factory, so $this would not be the seeder inside one.
+            ->each(fn (User $employee) => $employee->update(['email' => $this->workAddress($employee->name)]));
+    }
+
+    /**
+     * Build a work address from a person's name, on the same domain as every other account.
+     *
+     * The factory's own address is one of Faker's reserved example domains and bears no relation
+     * to the name beside it, which reads as obviously fabricated in the Users list. Honorifics and
+     * generational suffixes are dropped, since nobody's address carries them, and a number is
+     * appended only when two people would otherwise land on the same address.
+     */
+    private function workAddress(string $name): string
+    {
+        // Every honorific and suffix Faker's name generator can prepend or append.
+        $ignored = [
+            'mr', 'mrs', 'ms', 'miss', 'dr', 'prof',
+            'jr', 'sr', 'i', 'ii', 'iii', 'iv', 'v', 'md', 'dds', 'phd', 'dvm',
+        ];
+
+        $local = collect(explode(' ', $name))
+            ->map(fn (string $part): string => Str::slug($part))
+            ->reject(fn (string $part): bool => $part === '' || in_array($part, $ignored, true))
+            ->implode('.');
+
+        $candidate = $local;
+        $suffix = 1;
+
+        while (in_array($candidate, $this->issuedAddresses, true)) {
+            $candidate = $local.++$suffix;
+        }
+
+        $this->issuedAddresses[] = $candidate;
+
+        return $candidate.'@gmail.com';
     }
 }

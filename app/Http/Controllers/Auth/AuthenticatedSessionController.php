@@ -31,7 +31,18 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        /*
+         * Signing in always opens the dashboard, rather than resuming whatever page bounced the
+         * visitor here. What one role was reaching for is often not somewhere the next one may
+         * go, and a session that has just been handed over — these are shared workstations —
+         * should start where the account starts, not mid-way through someone else's errand.
+         *
+         * The stored destination is dropped rather than left behind, so a later prompt that does
+         * resume where it left off cannot pick up this one's leftovers.
+         */
+        $request->session()->forget('url.intended');
+
+        return redirect()->route('dashboard');
     }
 
     /**

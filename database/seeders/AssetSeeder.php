@@ -6,7 +6,6 @@ use App\Enums\AssetStatus;
 use App\Enums\UserRole;
 use App\Models\Asset;
 use App\Models\AssetCategory;
-use App\Models\Department;
 use App\Models\User;
 use App\Services\AssetAssignmentService;
 use Illuminate\Database\Seeder;
@@ -22,40 +21,34 @@ class AssetSeeder extends Seeder
     public function run(): void
     {
         $categories = AssetCategory::query()->pluck('id', 'name');
-        $departments = Department::query()->pluck('id', 'code');
         $custodian = User::query()->where('role', UserRole::ItStaff)->firstOrFail();
 
-        // Infrastructure stays with IT; everything else rotates through the departments
-        // so each one owns a slice of the register.
+        /*
+         * None of these carry a department. An asset belongs to one only through whoever holds
+         * it, so freshly registered stock belongs to nobody until it is issued — which is what
+         * issueAssetsToEmployees below does, and where every department on the register comes
+         * from. Setting one here would seed exactly the drift the rule exists to prevent.
+         */
         $blueprints = [
             ['category' => 'Laptop', 'name' => 'Dell Latitude 5420', 'brand' => 'Dell', 'count' => 10],
             ['category' => 'Laptop', 'name' => 'Lenovo ThinkPad E14', 'brand' => 'Lenovo', 'count' => 6],
             ['category' => 'Desktop', 'name' => 'HP ProDesk 400 G7', 'brand' => 'HP', 'count' => 10],
             ['category' => 'Monitor', 'name' => 'Acer 24" LED Monitor', 'brand' => 'Acer', 'count' => 8],
             ['category' => 'Printer', 'name' => 'Epson L3210 EcoTank', 'brand' => 'Epson', 'count' => 4],
-            ['category' => 'Networking Device', 'name' => 'Cisco Catalyst 1000 Switch', 'brand' => 'Cisco', 'count' => 3, 'department' => 'IT'],
-            ['category' => 'Server', 'name' => 'Dell PowerEdge T40', 'brand' => 'Dell', 'count' => 2, 'department' => 'IT'],
+            ['category' => 'Networking Device', 'name' => 'Cisco Catalyst 1000 Switch', 'brand' => 'Cisco', 'count' => 3],
+            ['category' => 'Server', 'name' => 'Dell PowerEdge T40', 'brand' => 'Dell', 'count' => 2],
             ['category' => 'Peripheral', 'name' => 'Logitech Wireless Keyboard', 'brand' => 'Logitech', 'count' => 5],
         ];
 
-        $rotatingDepartmentIds = $departments->values()->all();
-
         foreach ($blueprints as $blueprint) {
-            $factory = Asset::factory()
+            Asset::factory()
                 ->count($blueprint['count'])
                 ->state([
                     'asset_category_id' => $categories[$blueprint['category']],
                     'name' => $blueprint['name'],
                     'brand' => $blueprint['brand'],
-                ]);
-
-            $factory = isset($blueprint['department'])
-                ? $factory->state(['department_id' => $departments[$blueprint['department']]])
-                : $factory->sequence(fn ($sequence) => [
-                    'department_id' => $rotatingDepartmentIds[$sequence->index % count($rotatingDepartmentIds)],
-                ]);
-
-            $factory->create();
+                ])
+                ->create();
         }
 
         Asset::factory()
@@ -65,7 +58,6 @@ class AssetSeeder extends Seeder
                 'asset_category_id' => $categories['Desktop'],
                 'name' => 'HP Compaq Pro 6300',
                 'brand' => 'HP',
-                'department_id' => $departments['IT'],
             ])
             ->create();
 
@@ -75,8 +67,10 @@ class AssetSeeder extends Seeder
     /**
      * Hand a slice of the register to employees so custody history is not empty.
      *
-     * Each employee receives hardware their own department is accountable for, which keeps
-     * the department views consistent with the custody records.
+     * This is also what gives the register its departments: each issue carries the holder's
+     * department onto the asset, so the department views and the custody records are describing
+     * one fact rather than two that have to be kept in step. Anything left in stock stays
+     * unassigned to any department, which is the honest answer for hardware nobody holds.
      */
     private function issueAssetsToEmployees(User $custodian): void
     {
@@ -89,9 +83,9 @@ class AssetSeeder extends Seeder
         $issuableCategoryIds = AssetCategory::query()->whereIn('name', ['Laptop', 'Desktop'])->pluck('id');
 
         foreach ($employees as $employee) {
+            // Issuing flips the asset to Assigned, so each pass draws from what is still in stock.
             $asset = Asset::query()
                 ->whereIn('asset_category_id', $issuableCategoryIds)
-                ->where('department_id', $employee->department_id)
                 ->where('status', AssetStatus::Available)
                 ->inRandomOrder()
                 ->first();

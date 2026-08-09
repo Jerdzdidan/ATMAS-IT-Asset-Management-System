@@ -23,7 +23,11 @@ class AssetFactory extends Factory
     {
         $purchaseDate = Carbon::instance(fake()->dateTimeBetween('-7 years', '-2 months'));
 
-        // The asset tag is intentionally omitted; the model issues it from the category and year.
+        /*
+         * Two omissions on purpose. The asset tag is issued by the model, from the acquisition
+         * year and a running number for that year. The department is left null because an asset
+         * only belongs to one through whoever is holding it — issue it to someone to place it.
+         */
         return [
             'name' => fake()->randomElement(['Laptop', 'Desktop', 'Monitor', 'Printer', 'Network Switch']).' Unit',
             'asset_category_id' => AssetCategory::factory(),
