@@ -1,7 +1,17 @@
 import { Badge } from '@/components/ui/badge';
-import { type AssetCondition, type AssetStatus, type MaintenanceFrequency, type MaintenanceRequestStatus } from '@/types';
+import { type AssetCondition, type AssetStatus, type MaintenanceFrequency, type MaintenanceRequestStatus, type UserRole } from '@/types';
 
 type BadgeVariant = 'success' | 'info' | 'warning' | 'danger' | 'neutral';
+
+/** Kept in step with App\Enums\UserRole. Lives here so any screen can name a role, not just Users. */
+export const userRoleLabels: Record<UserRole, string> = {
+    SUPER_ADMIN: 'Super Administrator',
+    IT_STAFF: 'Administrator (IT Staff)',
+    DEPARTMENT_HEAD: 'Department Head',
+    MANAGEMENT: 'Management',
+    AUDITOR: 'Auditor',
+    EMPLOYEE: 'Employee',
+};
 
 export const assetStatusLabels: Record<AssetStatus, string> = {
     AVAILABLE: 'Available',

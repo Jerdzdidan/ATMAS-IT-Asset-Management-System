@@ -1,3 +1,4 @@
+import { DepartmentScopeNote } from '@/components/department-scope-note';
 import { Pagination } from '@/components/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -98,6 +99,7 @@ export default function LogsPage({ entries, filters, eventOptions, windowSize, i
                     <p className="text-muted-foreground">
                         Every change to the register, with the account that made it. Entries are written automatically and cannot be edited.
                     </p>
+                    <DepartmentScopeNote noun="activity" />
                 </div>
 
                 <div className="bg-card grid gap-4 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-5">

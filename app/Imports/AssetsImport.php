@@ -5,7 +5,6 @@ namespace App\Imports;
 use App\Enums\AssetCondition;
 use App\Models\Asset;
 use App\Models\AssetCategory;
-use App\Models\Department;
 use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -36,17 +35,11 @@ class AssetsImport implements ToCollection, WithHeadingRow
     /** @var Collection<string, int> */
     private Collection $categories;
 
-    /** @var Collection<string, int> */
-    private Collection $departments;
-
     public function __construct()
     {
-        $this->categories = AssetCategory::query()->pluck('id', 'code')->mapWithKeys(
-            fn (int $id, string $code): array => [Str::upper($code) => $id],
-        );
-
-        $this->departments = Department::query()->pluck('id', 'code')->mapWithKeys(
-            fn (int $id, string $code): array => [Str::upper($code) => $id],
+        // Keyed on the upper-cased name so a sheet typed in any casing still resolves.
+        $this->categories = AssetCategory::query()->pluck('id', 'name')->mapWithKeys(
+            fn (int $id, string $name): array => [Str::upper($name) => $id],
         );
     }
 
@@ -70,25 +63,18 @@ class AssetsImport implements ToCollection, WithHeadingRow
             return;
         }
 
-        $categoryCode = Str::upper(trim((string) $row->get('category_code')));
-        $departmentCode = Str::upper(trim((string) $row->get('department_code')));
+        $categoryName = Str::upper(trim((string) $row->get('category')));
 
-        if (! $this->categories->has($categoryCode)) {
-            $this->errors[] = ['row' => $lineNumber, 'message' => "Unknown category code \"{$categoryCode}\"."];
-
-            return;
-        }
-
-        if (filled($departmentCode) && ! $this->departments->has($departmentCode)) {
-            $this->errors[] = ['row' => $lineNumber, 'message' => "Unknown department code \"{$departmentCode}\"."];
+        if (! $this->categories->has($categoryName)) {
+            $this->errors[] = ['row' => $lineNumber, 'message' => "Unknown category \"{$categoryName}\"."];
 
             return;
         }
 
+        // No department column: an imported asset joins a department when it is issued to someone.
         $attributes = [
             'name' => trim((string) $row->get('name')),
-            'asset_category_id' => $this->categories->get($categoryCode),
-            'department_id' => filled($departmentCode) ? $this->departments->get($departmentCode) : null,
+            'asset_category_id' => $this->categories->get($categoryName),
             'brand' => $this->text($row->get('brand')),
             'model' => $this->text($row->get('model')),
             'serial_number' => filled($row->get('serial_number')) ? Str::upper(trim((string) $row->get('serial_number'))) : null,

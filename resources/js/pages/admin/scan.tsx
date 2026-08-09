@@ -4,12 +4,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/react';
-import { Camera, CameraOff, Keyboard, ScanLine } from 'lucide-react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft, Camera, CameraOff, Keyboard, ScanLine } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
+    { title: 'Assets', href: '/admin/assets' },
     { title: 'Scan', href: '/admin/scan' },
 ];
 
@@ -116,6 +117,14 @@ export default function ScanPage() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Scan asset" />
             <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+                <Link
+                    href="/admin/assets"
+                    className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -mb-2 inline-flex w-fit items-center gap-1.5 rounded-md text-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden"
+                >
+                    <ArrowLeft className="size-4" />
+                    Back to asset register
+                </Link>
+
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight">Scan an asset</h1>
                     <p className="text-muted-foreground">
@@ -185,7 +194,7 @@ export default function ScanPage() {
                                         id="code"
                                         autoFocus
                                         autoComplete="off"
-                                        placeholder="L-2026-0001"
+                                        placeholder="2026-0001"
                                         value={form.data.code}
                                         onChange={(event) => form.setData('code', event.target.value)}
                                     />

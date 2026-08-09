@@ -1,4 +1,5 @@
 import { AdminDataTable, type AdminTableColumn } from '@/components/admin/admin-data-table';
+import { DepartmentScopeNote } from '@/components/department-scope-note';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -188,6 +189,7 @@ export default function MaintenanceSchedulesPage({ schedules, assets, frequencie
                         <p className="text-muted-foreground">
                             Recurring service plans. Logging a service rolls the plan forward and files a ticket in the asset's history.
                         </p>
+                        <DepartmentScopeNote noun="service plans" />
                     </div>
                     {permissions.manages_assets && (
                         <Button onClick={openCreate}>
@@ -250,19 +252,25 @@ export default function MaintenanceSchedulesPage({ schedules, assets, frequencie
                               ]
                             : undefined
                     }
-                    filterOptions={[
-                        { value: 'ALL', label: 'All plans' },
-                        { value: 'OVERDUE', label: 'Overdue' },
-                        { value: 'DUE_SOON', label: 'Due within 30 days' },
-                        { value: 'SCHEDULED', label: 'Scheduled' },
-                        { value: 'PAUSED', label: 'Paused' },
-                    ]}
-                    getFilterValue={(item) => {
-                        if (!item.is_active) return 'PAUSED';
-                        if (item.is_overdue) return 'OVERDUE';
+                    filters={[
+                        {
+                            key: 'due',
+                            label: 'Due',
+                            allLabel: 'All plans',
+                            options: [
+                                { value: 'OVERDUE', label: 'Overdue' },
+                                { value: 'DUE_SOON', label: 'Due within 30 days' },
+                                { value: 'SCHEDULED', label: 'Scheduled' },
+                                { value: 'PAUSED', label: 'Paused' },
+                            ],
+                            getValue: (item) => {
+                                if (!item.is_active) return 'PAUSED';
+                                if (item.is_overdue) return 'OVERDUE';
 
-                        return item.days_until_due !== null && item.days_until_due <= 30 ? 'DUE_SOON' : 'SCHEDULED';
-                    }}
+                                return item.days_until_due !== null && item.days_until_due <= 30 ? 'DUE_SOON' : 'SCHEDULED';
+                            },
+                        },
+                    ]}
                 />
             </div>
 

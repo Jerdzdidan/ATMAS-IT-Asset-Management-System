@@ -57,16 +57,7 @@ class Asset extends Model
                 return;
             }
 
-            $category = $asset->category()->first();
-
-            if ($category === null) {
-                return;
-            }
-
-            $asset->asset_tag = app(AssetTagGenerator::class)->generate(
-                $category,
-                $asset->purchase_date?->year,
-            );
+            $asset->asset_tag = app(AssetTagGenerator::class)->generate($asset->purchase_date?->year);
         });
     }
 
@@ -155,6 +146,24 @@ class Asset extends Model
         }
 
         $query->whereNotNull('department_id')->where('department_id', $user->department_id);
+    }
+
+    /**
+     * Order the register so the most recently issued tags come first.
+     *
+     * The tag reads YEAR-SEQUENCE and the sequence restarts each year, so neither half orders
+     * correctly on its own: the two segments are pulled out and compared as numbers, newest year
+     * first and highest sequence within it.
+     *
+     * `+ 0` rather than a CAST: MySQL and SQLite disagree on cast type names but both coerce a
+     * numeric string in arithmetic.
+     *
+     * @param  Builder<Asset>  $query
+     */
+    public function scopeOrderByNewestTag(Builder $query): void
+    {
+        $query->orderByRaw('SUBSTR(asset_tag, 1, 4) + 0 DESC')
+            ->orderByRaw('SUBSTR(asset_tag, 6) + 0 DESC');
     }
 
     /**

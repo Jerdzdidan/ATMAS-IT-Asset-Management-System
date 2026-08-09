@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import { type AssetStatus, type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { type AssetStatus, type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowLeft, FileDown, SearchX, Tags } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -43,6 +43,7 @@ const pageSize = 12;
 const previewLimit = 12;
 
 export default function LabelsPage({ assets, categories, departments, initialSelection }: LabelsPageProps) {
+    const { permissions } = usePage<SharedData>().props.auth;
     const inService = useMemo(() => assets.filter((asset) => asset.status !== 'RETIRED').map((asset) => asset.id), [assets]);
 
     // Everything in service starts ticked, so the common "print the lot" run is still one click.
@@ -186,28 +187,32 @@ export default function LabelsPage({ assets, categories, departments, initialSel
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label>Department</Label>
-                            <Select
-                                value={department}
-                                onValueChange={(value) => {
-                                    setDepartment(value);
-                                    setPage(1);
-                                }}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={all}>All departments</SelectItem>
-                                    {departments.map((option) => (
-                                        <SelectItem key={option} value={option}>
-                                            {option}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {/* A department head is confined to one department, so the picker would
+                            offer a single choice that changes nothing. */}
+                        {!permissions.is_department_scoped && (
+                            <div className="space-y-2">
+                                <Label>Department</Label>
+                                <Select
+                                    value={department}
+                                    onValueChange={(value) => {
+                                        setDepartment(value);
+                                        setPage(1);
+                                    }}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value={all}>All departments</SelectItem>
+                                        {departments.map((option) => (
+                                            <SelectItem key={option} value={option}>
+                                                {option}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                         <div className="space-y-2">
                             <Label>Status</Label>
                             <Select

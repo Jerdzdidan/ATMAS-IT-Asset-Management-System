@@ -14,12 +14,11 @@ import { toast } from 'sonner';
 interface ManagedCategory {
     id: number;
     name: string;
-    code: string;
     description: string | null;
     assets_count: number;
 }
 
-type CategoryFormData = { name: string; code: string; description: string };
+type CategoryFormData = { name: string; description: string };
 
 interface CategoriesPageProps {
     categories: ManagedCategory[];
@@ -30,7 +29,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Categories', href: '/admin/categories' },
 ];
 
-const emptyForm: CategoryFormData = { name: '', code: '', description: '' };
+const emptyForm: CategoryFormData = { name: '', description: '' };
 
 export default function CategoriesPage({ categories }: CategoriesPageProps) {
     const [formOpen, setFormOpen] = useState(false);
@@ -45,12 +44,6 @@ export default function CategoriesPage({ categories }: CategoriesPageProps) {
             label: 'Category',
             render: (category) => <span className="font-medium">{category.name}</span>,
             sortValue: (category) => category.name,
-        },
-        {
-            key: 'code',
-            label: 'Tag code',
-            render: (category) => <span className="font-mono">{category.code}</span>,
-            sortValue: (category) => category.code,
         },
         {
             key: 'description',
@@ -74,7 +67,7 @@ export default function CategoriesPage({ categories }: CategoriesPageProps) {
 
     function openEdit(category: ManagedCategory): void {
         setEditingCategory(category);
-        form.setData({ name: category.name, code: category.code, description: category.description ?? '' });
+        form.setData({ name: category.name, description: category.description ?? '' });
         form.clearErrors();
         setFormOpen(true);
     }
@@ -122,7 +115,7 @@ export default function CategoriesPage({ categories }: CategoriesPageProps) {
                     data={categories}
                     columns={columns}
                     searchPlaceholder="Search categories..."
-                    getSearchText={(category) => `${category.name} ${category.code} ${category.description ?? ''}`}
+                    getSearchText={(category) => `${category.name} ${category.description ?? ''}`}
                     onEdit={openEdit}
                     onDelete={setDeletingCategory}
                     deleteDisabled={(category) => category.assets_count > 0}
@@ -145,23 +138,6 @@ export default function CategoriesPage({ categories }: CategoriesPageProps) {
                                 onChange={(event) => form.setData('name', event.target.value)}
                             />
                             {form.errors.name && <p className="text-destructive text-sm">{form.errors.name}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="category-code">Tag code</Label>
-                            <Input
-                                id="category-code"
-                                placeholder="L"
-                                className="font-mono"
-                                disabled={Boolean(editingCategory && editingCategory.assets_count > 0)}
-                                value={form.data.code}
-                                onChange={(event) => form.setData('code', event.target.value.toUpperCase())}
-                            />
-                            <p className="text-muted-foreground text-xs">
-                                {editingCategory && editingCategory.assets_count > 0
-                                    ? 'Locked because assets already carry this code in their tags.'
-                                    : `Prefixes every asset tag in this category, e.g. ${form.data.code || 'L'}-${new Date().getFullYear()}-0001.`}
-                            </p>
-                            {form.errors.code && <p className="text-destructive text-sm">{form.errors.code}</p>}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="category-description">Description</Label>

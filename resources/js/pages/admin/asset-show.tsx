@@ -21,8 +21,8 @@ import {
     type SharedData,
 } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeft, ArrowLeftRight, ImageDown, ImagePlus, PackageCheck, RotateCcw, Star, Trash2 } from 'lucide-react';
-import { useRef, useState, type FormEvent } from 'react';
+import { ArrowLeft, ArrowLeftRight, ChevronLeft, ChevronRight, ImageDown, ImagePlus, PackageCheck, RotateCcw, Star, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 
 interface AssignmentRecord {
@@ -97,12 +97,44 @@ export default function AssetShowPage({ asset, currentAssignment, assignableUser
     const { permissions } = usePage<SharedData>().props.auth;
     const [assignOpen, setAssignOpen] = useState(false);
     const [returnOpen, setReturnOpen] = useState(false);
+    /** Which photo the viewer is showing, or null while it is closed. */
+    const [viewedPhoto, setViewedPhoto] = useState<number | null>(null);
 
     const assignForm = useForm({ user_id: '', assigned_at: currentDateTimeLocal(), notes: '' });
     const returnForm = useForm({ returned_at: currentDateTimeLocal(), condition: asset.condition, return_notes: '' });
     const lifecycleForm = useForm<Record<string, never>>({});
     const photoForm = useForm<{ photos: File[]; caption: string }>({ photos: [], caption: '' });
     const photoInputRef = useRef<HTMLInputElement>(null);
+
+    const photoCount = asset.photos.length;
+    // Guarded by index rather than by the open flag alone: deleting the last photo while the
+    // viewer is up would otherwise leave it pointing past the end of the array.
+    const currentPhoto = viewedPhoto === null ? undefined : asset.photos[viewedPhoto];
+
+    /** Move through the photos, wrapping at both ends so the arrows never dead-end. */
+    function stepPhoto(offset: number): void {
+        setViewedPhoto((current) => (current === null ? current : (current + offset + photoCount) % photoCount));
+    }
+
+    // Arrow keys drive the viewer; Escape and the focus trap are Radix's job.
+    useEffect(() => {
+        if (currentPhoto === undefined) {
+            return;
+        }
+
+        function handleKey(event: KeyboardEvent): void {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+                return;
+            }
+
+            event.preventDefault();
+            setViewedPhoto((current) => (current === null ? current : (current + (event.key === 'ArrowLeft' ? -1 : 1) + photoCount) % photoCount));
+        }
+
+        window.addEventListener('keydown', handleKey);
+
+        return () => window.removeEventListener('keydown', handleKey);
+    }, [currentPhoto, photoCount]);
 
     function uploadPhotos(files: FileList | null): void {
         if (files === null || files.length === 0) {
@@ -292,13 +324,24 @@ export default function AssetShowPage({ asset, currentAssignment, assignableUser
                                 <p className="text-muted-foreground text-sm">No photos have been attached to this asset yet.</p>
                             ) : (
                                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                                    {asset.photos.map((photo) => (
+                                    {asset.photos.map((photo, index) => (
                                         <figure key={photo.id} className="group relative overflow-hidden rounded-md border">
-                                            <img
-                                                src={photo.url}
-                                                alt={photo.caption ?? photo.original_name}
-                                                className="aspect-square w-full object-cover"
-                                            />
+                                            {/*
+                                                The overlay buttons are siblings of this one rather than children, so
+                                                a click on Delete never opens the viewer on its way through.
+                                            */}
+                                            <button
+                                                type="button"
+                                                className="focus-visible:ring-ring block w-full cursor-pointer focus-visible:ring-2 focus-visible:outline-hidden"
+                                                onClick={() => setViewedPhoto(index)}
+                                                aria-label={`View photo ${index + 1} of ${photoCount}`}
+                                            >
+                                                <img
+                                                    src={photo.url}
+                                                    alt={photo.caption ?? `Condition photo of ${asset.asset_tag}`}
+                                                    className="aspect-square w-full object-cover transition-transform group-hover:scale-105"
+                                                />
+                                            </button>
                                             {photo.is_primary && (
                                                 <span className="bg-primary text-primary-foreground absolute top-1 left-1 rounded px-1.5 py-0.5 text-[10px] font-semibold">
                                                     Primary
@@ -616,6 +659,62 @@ export default function AssetShowPage({ asset, currentAssignment, assignableUser
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={currentPhoto !== undefined} onOpenChange={(open) => !open && setViewedPhoto(null)}>
+                <DialogContent className="w-[95vw] max-w-4xl gap-0 overflow-hidden p-0">
+                    {currentPhoto && (
+                        <>
+                            {/* The caption sits above the image so the close button lands on the panel,
+                                not on whatever happens to be in the top-right of the photograph. */}
+                            <DialogHeader className="space-y-1 p-4 pr-12 text-left">
+                                <DialogTitle className="text-base">
+                                    Photo {(viewedPhoto ?? 0) + 1} of {photoCount}
+                                </DialogTitle>
+                                <DialogDescription>
+                                    {[
+                                        currentPhoto.caption,
+                                        currentPhoto.is_primary ? 'Primary' : null,
+                                        `Uploaded ${formatDateTime(currentPhoto.created_at)}`,
+                                    ]
+                                        .filter((part): part is string => Boolean(part))
+                                        .join(' · ')}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="relative flex items-center justify-center bg-black">
+                                <img
+                                    src={currentPhoto.url}
+                                    alt={currentPhoto.caption ?? `Condition photo of ${asset.asset_tag}`}
+                                    className="max-h-[70vh] w-auto max-w-full object-contain"
+                                />
+                                {photoCount > 1 && (
+                                    <>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="secondary"
+                                            className="absolute top-1/2 left-3 -translate-y-1/2"
+                                            aria-label="Previous photo"
+                                            onClick={() => stepPhoto(-1)}
+                                        >
+                                            <ChevronLeft />
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="secondary"
+                                            className="absolute top-1/2 right-3 -translate-y-1/2"
+                                            aria-label="Next photo"
+                                            onClick={() => stepPhoto(1)}
+                                        >
+                                            <ChevronRight />
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        </>
+                    )}
                 </DialogContent>
             </Dialog>
         </AppLayout>

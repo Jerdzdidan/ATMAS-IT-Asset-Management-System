@@ -1,3 +1,4 @@
+import { DepartmentScopeNote } from '@/components/department-scope-note';
 import { MaintenanceStatusBadge } from '@/components/status-badges';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,6 +75,7 @@ export default function DashboardPage({ statistics, upcomingMaintenance, recentA
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
                     <p className="text-muted-foreground">A live view of the hardware register and the repair queue.</p>
+                    <DepartmentScopeNote noun="figures" />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

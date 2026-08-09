@@ -19,7 +19,6 @@ class AssetCategoryFactory extends Factory
     {
         return [
             'name' => ucfirst(fake()->unique()->word()),
-            'code' => strtoupper(fake()->unique()->bothify('??#')),
             'description' => fake()->sentence(),
         ];
     }

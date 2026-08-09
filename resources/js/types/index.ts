@@ -74,6 +74,8 @@ export interface ReportPayload {
 
 export interface Auth {
     user: User;
+    /** The signed-in account's own department, or null when it belongs to none. */
+    department: { id: number; name: string } | null;
     permissions: Permissions;
 }
 

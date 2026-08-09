@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Models\Asset;
 use App\Models\Department;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -76,9 +77,30 @@ class UserController extends Controller
             unset($validated['password']);
         }
 
+        $movedDepartment = array_key_exists('department_id', $validated)
+            && (int) $validated['department_id'] !== (int) $user->department_id;
+
         $user->update($validated);
 
+        if ($movedDepartment) {
+            $this->followEmployeeToNewDepartment($user);
+        }
+
         return to_route('admin.users.index')->with('success', 'User updated successfully.');
+    }
+
+    /**
+     * Move the hardware an employee is holding into their new department.
+     *
+     * An asset's department is a copy of its holder's, kept on the asset so every report and the
+     * department-head scoping can filter on one column. That copy has to be refreshed when someone
+     * transfers, or their laptop stays behind in the department they left.
+     */
+    private function followEmployeeToNewDepartment(User $user): void
+    {
+        Asset::query()
+            ->heldBy($user->id)
+            ->update(['department_id' => $user->department_id]);
     }
 
     /**

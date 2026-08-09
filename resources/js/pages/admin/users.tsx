@@ -1,4 +1,5 @@
 import { AdminDataTable, type AdminTableColumn } from '@/components/admin/admin-data-table';
+import { userRoleLabels } from '@/components/status-badges';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -50,16 +51,20 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 /** Kept in step with App\Enums\UserRole so the picker explains what each role unlocks. */
-const roles: { value: UserRole; label: string; description: string }[] = [
-    { value: 'SUPER_ADMIN', label: 'Super Administrator', description: 'Full access to every module, user management, and settings.' },
-    { value: 'IT_STAFF', label: 'Administrator (IT Staff)', description: 'Manages assets, records, inventory operations, and the repair queue.' },
-    { value: 'DEPARTMENT_HEAD', label: 'Department Head', description: 'Views the assets allocated to their own department.' },
-    { value: 'MANAGEMENT', label: 'Management', description: 'Views dashboards and summaries without editing records.' },
-    { value: 'AUDITOR', label: 'Auditor', description: 'Read-only access to the inventory records.' },
-    { value: 'EMPLOYEE', label: 'Employee', description: 'Views only the assets issued to them.' },
-];
+const roleDescriptions: Record<UserRole, string> = {
+    SUPER_ADMIN: 'Full access to every module, user management, and settings.',
+    IT_STAFF: 'Manages assets, records, inventory operations, and the repair queue.',
+    DEPARTMENT_HEAD: 'Views the assets allocated to their own department.',
+    MANAGEMENT: 'Views dashboards and summaries without editing records.',
+    AUDITOR: 'Read-only access to the inventory records.',
+    EMPLOYEE: 'Views only the assets issued to them.',
+};
 
-const roleLabels = Object.fromEntries(roles.map((role) => [role.value, role.label])) as Record<UserRole, string>;
+const roles = (Object.keys(roleDescriptions) as UserRole[]).map((value) => ({
+    value,
+    label: userRoleLabels[value],
+    description: roleDescriptions[value],
+}));
 
 const emptyForm: UserFormData = {
     name: '',
@@ -102,7 +107,7 @@ export default function UsersPage({ users, departments }: UsersPageProps) {
             render: (user) => user.department?.name ?? <span className="text-muted-foreground">—</span>,
             sortValue: (user) => user.department?.name ?? '',
         },
-        { key: 'role', label: 'Role', render: (user) => roleLabels[user.role], sortValue: (user) => user.role },
+        { key: 'role', label: 'Role', render: (user) => userRoleLabels[user.role], sortValue: (user) => user.role },
         {
             key: 'status',
             label: 'Status',
@@ -187,8 +192,15 @@ export default function UsersPage({ users, departments }: UsersPageProps) {
                     getSearchText={(user) => `${user.name} ${user.email} ${user.employee_code ?? ''} ${user.department?.name ?? ''} ${user.role}`}
                     onEdit={openEdit}
                     onDelete={setDeletingUser}
-                    filterOptions={[{ value: 'ALL', label: 'All roles' }, ...roles.map((role) => ({ value: role.value, label: role.label }))]}
-                    getFilterValue={(user) => user.role}
+                    filters={[
+                        {
+                            key: 'role',
+                            label: 'Role',
+                            allLabel: 'All roles',
+                            options: roles.map((role) => ({ value: role.value, label: role.label })),
+                            getValue: (user) => user.role,
+                        },
+                    ]}
                 />
             </div>
 

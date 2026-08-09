@@ -28,8 +28,7 @@ class AssetImportTemplateExport implements FromCollection, ShouldAutoSize, WithH
      */
     public const COLUMNS = [
         'Name',
-        'Category Code',
-        'Department Code',
+        'Category',
         'Brand',
         'Model',
         'Serial Number',
@@ -42,13 +41,12 @@ class AssetImportTemplateExport implements FromCollection, ShouldAutoSize, WithH
     ];
 
     /**
-     * @param  list<string>  $categoryCodes
-     * @param  list<string>  $departmentCodes
+     * The department is left out on purpose: an asset joins one when it is issued to an employee,
+     * so there is nothing sensible for a spreadsheet to say about it.
+     *
+     * @param  list<string>  $categoryNames
      */
-    public function __construct(
-        private readonly array $categoryCodes = [],
-        private readonly array $departmentCodes = [],
-    ) {}
+    public function __construct(private readonly array $categoryNames = []) {}
 
     /** @return Collection<int, list<string|null>> */
     public function collection(): Collection
@@ -56,8 +54,7 @@ class AssetImportTemplateExport implements FromCollection, ShouldAutoSize, WithH
         return collect([
             [
                 'Dell Latitude 5440',
-                $this->categoryCodes[0] ?? 'L',
-                $this->departmentCodes[0] ?? 'IT',
+                $this->categoryNames[0] ?? 'Laptop',
                 'Dell',
                 'Latitude 5440',
                 'SN-EXAMPLE-001',

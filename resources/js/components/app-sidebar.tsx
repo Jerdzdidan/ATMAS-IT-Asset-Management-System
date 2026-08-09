@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavGroup, type Permissions, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { Building2, CalendarClock, FileSpreadsheet, HardDrive, Layers, LayoutGrid, LifeBuoy, QrCode, ScrollText, Users, Wrench } from 'lucide-react';
+import { Building2, CalendarClock, FileSpreadsheet, HardDrive, Layers, LayoutGrid, LifeBuoy, ScrollText, Users, Wrench } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const dashboardGroup: NavGroup = {
@@ -20,7 +20,6 @@ function buildAssetManagementGroup(managesAssets: boolean): NavGroup {
             ...(managesAssets ? [{ title: 'Categories', url: '/admin/categories', icon: Layers }] : []),
             { title: 'Maintenance', url: '/admin/maintenance-requests', icon: Wrench },
             { title: 'PM Schedules', url: '/admin/maintenance-schedules', icon: CalendarClock },
-            { title: 'Scan', url: '/admin/scan', icon: QrCode },
         ],
     };
 }

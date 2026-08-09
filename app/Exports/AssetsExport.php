@@ -30,9 +30,9 @@ class AssetsExport implements FromCollection, ShouldAutoSize, WithHeadings, With
     public function collection(): Collection
     {
         return Asset::query()
-            ->with(['category:id,name,code', 'department:id,name,code', 'currentAssignment.user:id,name,employee_code'])
+            ->with(['category:id,name', 'department:id,name,code', 'currentAssignment.user:id,name,employee_code'])
             ->visibleTo($this->viewer)
-            ->orderBy('asset_tag')
+            ->orderByNewestTag()
             ->get();
     }
 
@@ -42,7 +42,6 @@ class AssetsExport implements FromCollection, ShouldAutoSize, WithHeadings, With
         return [
             'Asset Tag',
             'Name',
-            'Category Code',
             'Category',
             'Department Code',
             'Department',
@@ -69,7 +68,6 @@ class AssetsExport implements FromCollection, ShouldAutoSize, WithHeadings, With
         return [
             $row->asset_tag,
             $row->name,
-            $row->category?->code,
             $row->category?->name,
             $row->department?->code,
             $row->department?->name,

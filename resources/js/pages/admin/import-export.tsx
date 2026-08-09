@@ -11,8 +11,7 @@ import { type FormEvent } from 'react';
 
 interface ImportExportPageProps {
     columns: string[];
-    categories: { name: string; code: string }[];
-    departments: { name: string; code: string }[];
+    categories: { name: string }[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -21,7 +20,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Import / Export', href: '/admin/import-export' },
 ];
 
-export default function ImportExportPage({ columns, categories, departments }: ImportExportPageProps) {
+export default function ImportExportPage({ columns, categories }: ImportExportPageProps) {
     const { flash } = usePage<SharedData>().props;
     const summary = flash?.importSummary;
     const form = useForm<{ file: File | null }>({ file: null });
@@ -149,36 +148,26 @@ export default function ImportExportPage({ columns, categories, departments }: I
                 <Card>
                     <CardHeader>
                         <CardTitle>Column reference</CardTitle>
-                        <CardDescription>The importer matches on these headings. Only Name and Category Code are required.</CardDescription>
+                        <CardDescription>The importer matches on these headings. Only Name and Category are required.</CardDescription>
                     </CardHeader>
-                    <CardContent className="grid gap-6 lg:grid-cols-3">
+                    <CardContent className="grid gap-6 sm:grid-cols-2">
                         <div>
                             <h3 className="mb-2 text-sm font-medium">Columns</h3>
                             <ul className="text-muted-foreground space-y-1 text-sm">
                                 {columns.map((column) => (
                                     <li key={column}>
                                         {column}
-                                        {(column === 'Name' || column === 'Category Code') && <span className="text-destructive"> *</span>}
+                                        {(column === 'Name' || column === 'Category') && <span className="text-destructive"> *</span>}
                                     </li>
                                 ))}
                             </ul>
                         </div>
                         <div>
-                            <h3 className="mb-2 text-sm font-medium">Category codes</h3>
+                            <h3 className="mb-2 text-sm font-medium">Categories</h3>
                             <ul className="text-muted-foreground space-y-1 text-sm">
                                 {categories.map((category) => (
-                                    <li key={category.code}>
-                                        <span className="text-foreground font-mono">{category.code}</span> — {category.name}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 className="mb-2 text-sm font-medium">Department codes</h3>
-                            <ul className="text-muted-foreground space-y-1 text-sm">
-                                {departments.map((department) => (
-                                    <li key={department.code}>
-                                        <span className="text-foreground font-mono">{department.code}</span> — {department.name}
+                                    <li key={category.name} className="text-foreground">
+                                        {category.name}
                                     </li>
                                 ))}
                             </ul>

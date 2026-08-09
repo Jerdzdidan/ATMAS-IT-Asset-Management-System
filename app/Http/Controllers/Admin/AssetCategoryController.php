@@ -20,7 +20,7 @@ class AssetCategoryController extends Controller
     {
         return Inertia::render('admin/categories', [
             'categories' => AssetCategory::query()
-                ->select(['id', 'name', 'code', 'description'])
+                ->select(['id', 'name', 'description'])
                 ->withCount('assets')
                 ->orderBy('name')
                 ->get(),

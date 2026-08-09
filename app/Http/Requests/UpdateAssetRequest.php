@@ -21,6 +21,9 @@ class UpdateAssetRequest extends FormRequest
      * Serial numbers are stored uppercase so lookups stay predictable.
      *
      * The asset tag is deliberately absent: it is printed on the device and never reassigned.
+     *
+     * So is the department: it is taken from whoever currently holds the asset, so that it can
+     * never contradict the custody record.
      */
     protected function prepareForValidation(): void
     {
@@ -43,7 +46,6 @@ class UpdateAssetRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:150'],
             'asset_category_id' => ['required', 'integer', 'exists:asset_categories,id'],
-            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'brand' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:100'],
             'serial_number' => ['nullable', 'string', 'max:100', Rule::unique('assets', 'serial_number')->ignore($assetId)],

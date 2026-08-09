@@ -9,7 +9,6 @@ use App\Http\Requests\UpdateAssetRequest;
 use App\Models\Asset;
 use App\Models\AssetCategory;
 use App\Models\AssetTagSequence;
-use App\Models\Department;
 use App\Models\User;
 use App\Services\AssetQrCodeGenerator;
 use Illuminate\Http\RedirectResponse;
@@ -27,6 +26,8 @@ class AssetController extends Controller
      */
     public function index(Request $request): Response
     {
+        $currentYear = (int) now()->year;
+
         return Inertia::render('admin/assets', [
             'assets' => Asset::query()
                 ->with([
@@ -37,38 +38,14 @@ class AssetController extends Controller
                     'currentAssignment.user:id,name,employee_code',
                 ])
                 ->visibleTo($request->user())
-                ->orderBy('asset_tag')
+                ->orderByNewestTag()
                 ->get(),
-            'categories' => $this->categoryOptions(),
-            'departments' => Department::query()->select(['id', 'name'])->orderBy('name')->get(),
-            'currentYear' => (int) now()->year,
+            'categories' => AssetCategory::query()->select(['id', 'name'])->orderBy('name')->get(),
+            'currentYear' => $currentYear,
+            // Lets the register form preview the tag before saving. Only this year's counter is
+            // known, so an asset bought in an earlier year previews its number as a placeholder.
+            'nextTagNumber' => (int) (AssetTagSequence::query()->where('year', $currentYear)->value('next_number') ?? 1),
         ]);
-    }
-
-    /**
-     * List the categories alongside the tag each would issue next, for the register form preview.
-     *
-     * @return array<int, array{id: int, name: string, code: string, next_number: int}>
-     */
-    private function categoryOptions(): array
-    {
-        $currentYear = (int) now()->year;
-
-        $nextNumbers = AssetTagSequence::query()
-            ->where('year', $currentYear)
-            ->pluck('next_number', 'category_code');
-
-        return AssetCategory::query()
-            ->select(['id', 'name', 'code'])
-            ->orderBy('name')
-            ->get()
-            ->map(fn (AssetCategory $category): array => [
-                'id' => $category->id,
-                'name' => $category->name,
-                'code' => $category->code,
-                'next_number' => (int) ($nextNumbers[$category->code] ?? 1),
-            ])
-            ->all();
     }
 
     /**

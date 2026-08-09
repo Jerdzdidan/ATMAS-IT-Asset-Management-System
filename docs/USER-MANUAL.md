@@ -98,7 +98,16 @@ maintain the register are not the people who audit it.
 
 **Sees nothing outside their department.** A department head assigned to Accounting sees only
 Accounting's hardware — on the register, on the dashboard counters, in every report, and in the
-logs. A head with no department set sees nothing at all, which is deliberate: it fails closed.
+logs. Their own department is named under their account in the profile menu, and every module they
+open says which department's records it is showing. A head with no department set sees nothing at
+all, which is deliberate: it fails closed, and the screen says so rather than looking empty.
+
+Because a department is read from whoever holds an asset (see §4.3), a head sees the hardware their
+people are **currently holding**. Anything sitting unissued in a cupboard belongs to no department
+and appears for nobody.
+
+**No Actions column.** Read-only roles get the table without one, rather than a menu that opens
+onto nothing.
 
 **Cannot change anything.** This role is read-only. If a device needs to move, the head raises it
 with IT Staff, who make the change.
@@ -161,7 +170,9 @@ with IT Staff, who make the change.
 ### Signing in
 
 Go to the ATMAS address, enter your work email and password, and press **Log in**. If you have
-forgotten your password, use **Forgot password** or ask the Super Administrator to reset it.
+forgotten your password, ask the Super Administrator to reset it — there is no self-service reset,
+and no sign-up. Both would be doors into an internal register, so neither the links nor the pages
+behind them exist. Once you are in, you can change your own password under **Settings → Password**.
 
 If your account has been set to **Inactive**, sign-in is refused. That is normal for someone who
 has left; contact the Super Administrator if it happens to you unexpectedly.
@@ -176,10 +187,9 @@ What you see depends on your role. The full set is:
 |---|---|---|
 | **Main** | Dashboard | Live counters and things needing attention |
 | **Asset Management** | Assets | The register — every device |
-| | Categories | Device types and their tag codes |
+| | Categories | Device types used to classify the register |
 | | Maintenance | The repair queue |
 | | PM Schedules | Recurring preventive servicing |
-| | Scan | Camera / barcode lookup |
 | **Reporting** | Reports | The ten standard reports |
 | | Logs | The audit trail |
 | **Administration** | Users | Accounts and roles |
@@ -189,6 +199,10 @@ What you see depends on your role. The full set is:
 
 **My Workspace is always visible, to everyone.** Even the Super Administrator is issued a laptop
 and reports their own faults through it.
+
+**Scan, Labels, and Import / Export are not in the sidebar.** They belong to the register rather
+than beside it, so they live as buttons across the top of the **Assets** page, and each carries a
+link back to the register.
 
 ### The dashboard
 
@@ -217,18 +231,17 @@ Employees see a different dashboard: their own equipment and their own open tick
 Every asset gets a permanent identifier the moment it is registered:
 
 ```
-L - 2026 - 0001
-│    │      └── running number, per category, per year, never reused
-│    └───────── year of acquisition (falls back to the current year)
-└────────────── category code
+2026 - 0001
+ │      └── running number, per year, never reused
+ └───────── year of acquisition (falls back to the current year)
 ```
 
 **You never type an asset tag.** The system issues it on save and the number is never reused, even
 if the asset is later deleted. That is what makes a tag safe to print on a sticker and cite in an
 audit ten years later.
 
-Category codes: `L` Laptop · `D` Desktop · `M` Monitor · `P` Printer · `N` Networking Device ·
-`S` Server · `PR` Peripheral.
+The tag says nothing about what the device is — that is the category's job, and a category can be
+renamed at any time without stranding the labels already stuck to hardware.
 
 ### 4.2 Status vs condition — they are different things
 
@@ -253,18 +266,21 @@ Category codes: `L` Laptop · `D` Desktop · `M` Monitor · `P` Printer · `N` N
 A device can be **Assigned** and in **Poor** condition at the same time. That combination is exactly
 what the Damaged and Retired report is looking for.
 
-### 4.3 Department ownership vs custody — the distinction people get wrong
+### 4.3 An asset's department comes from whoever holds it
 
-These are two separate fields and they mean different things:
+**You never set an asset's department.** It is read from whoever is holding the asset:
 
-- **Department** is who *owns* the asset and carries it on their budget. A shared printer belongs to
-  Accounting even when nobody is holding it.
-- **Assigned employee** is who is *physically holding it right now*.
+- Issue a laptop to someone in Accounting and the laptop becomes an Accounting asset.
+- Record its return and it goes back to the shared pool with **no department at all**.
+- Move that employee to Sales and everything they are holding moves with them.
 
-**Issuing an asset does not change its department.** If a laptop owned by Accounting is issued to
-someone in Sales, it stays an Accounting asset. That is intentional: departmental reporting counts
-ownership, not who happens to be carrying it this month. To genuinely transfer ownership, IT Staff
-edit the asset and change the Department field.
+This is what keeps the register honest — a department can never be billed for hardware nobody in it
+has. The trade is that unassigned stock belongs to no one: a laptop sitting in the store cupboard
+shows a blank department and is invisible to every Department Head until it is issued. If you need a
+department to see its spare hardware, issue it to someone — a store keeper or the head themselves.
+
+**Assigned employee** is who is physically holding it right now; **Department** is simply their
+department, copied onto the asset so reports and access scoping have one column to read.
 
 ---
 
@@ -280,8 +296,7 @@ can read it.
 | Field | Required | Notes |
 |---|---|---|
 | Name | ✅ | What it is, e.g. "Dell Latitude 5440" |
-| Category | ✅ | Determines the tag prefix |
-| Department | — | The owning department |
+| Category | ✅ | What kind of device it is |
 | Brand / Model | — | |
 | Serial number | — | Stored uppercase; **must be unique** |
 | Location | — | Where it physically sits |
@@ -302,9 +317,32 @@ The form previews the tag the asset will receive before you save.
 Columns: thumbnail, tag, name, category, department, assigned to, condition, status.
 
 - **Search** matches tag, name, brand, model, serial, department, and holder.
-- **Filter** narrows by status.
+- **Filter by status** with its own dropdown, since it is the one most people reach for.
+- **Filter by** anything else in two steps: pick the field — Category, Department, Condition, or
+  Assigned to — and a second box appears for the value. That box is searchable, so you can type
+  “vill” rather than scrolling a hundred names. It only lists values that actually appear in your
+  register, so it can never hand you an empty table. Status and the chosen field stack, so
+  Assigned + Laptop is one query; switching the field drops the previous one, and **Clear filters**
+  resets everything.
 - **Sort** by clicking a column heading.
 - Row menu → **View** opens the full record; **Edit** and **Delete** appear for IT Staff.
+
+The list opens on the newest tags — read as the year and running number, so `2026-0004` sits above
+`2026-0003` and both above anything from 2025. Note that the year in a tag comes from the **purchase
+date**, not the date you registered the asset, so backdated equipment lands where it was bought
+rather than at the top.
+
+**Table or Grid.** The switch on the right of the search row swaps the list for a card grid — a
+larger photo per asset, with the tag, name, brand and model, category, department, holder, and both
+badges underneath. Cards suit picture-led work such as checking condition photos or finding a device
+you recognise by sight; the table suits scanning many records at once. Clicking anywhere on a card
+opens the asset, and the **…** menu in its corner carries the same actions as the row menu. Your
+search, filter, and sort carry across both views — in grid view sorting moves to its own dropdown,
+with the arrow button beside it flipping between ascending and descending.
+
+Your choice of view is remembered on that computer, so the register opens the way you left it next
+time. It is stored in the browser rather than on your account, so a different machine starts on the
+table again.
 
 Header buttons: **Scan**, **Labels**, **Import / Export** (IT Staff), **Register asset**
 (IT Staff).
@@ -316,7 +354,7 @@ Everything known about one device:
 - **Asset details** — the full specification
 - **Current custody** — who holds it, since when, who issued it
 - **Asset label** — the QR code, with a **Download label (PNG)** button
-- **Photos** — condition evidence
+- **Photos** — condition evidence; click one to open it full size
 - **Preventive maintenance** — the plans attached to it
 - **Assignment history** — every handover, ever
 - **Maintenance history** — every repair and service
@@ -327,6 +365,11 @@ Everything known about one device:
 
 The first photo becomes the thumbnail automatically. Hover any photo to make it primary (star) or
 delete it (bin). Deleting removes the file from disk as well as the record.
+
+**Click a photo to open it full size.** The viewer shows the caption, where the photo sits in the
+set, and when it was uploaded. Move between photos with the arrows on either side or the **←** and
+**→** keys, and close it with **Esc** or the **✕**. That is how you actually read a serial number
+off a photograph — the grid thumbnails are square crops and will have cut it off.
 
 > **Photograph hardware at issue and at return.** A dated photo settles a damage dispute in seconds.
 
@@ -535,7 +578,7 @@ sticker is scuffed or partly peeled.
 
 ### 9.3 Scanning
 
-**Scan** offers two routes:
+**Assets → Scan** offers two routes:
 
 - **Camera** — press Start camera, point at the label, and the record opens. Browsers only release
   the camera over HTTPS or on `localhost`; on plain HTTP the camera will not start.
@@ -561,15 +604,14 @@ the importer exactly, so an export can be edited and fed straight back in.
 ### 10.2 Importing
 
 1. **Download the blank import template** — it carries the exact headings plus a worked example row
-   and the category and department codes this system accepts.
+   and the category names this system accepts.
 2. Fill it in. Delete the example row.
 3. Upload it.
 
 | Column | Required | Notes |
 |---|---|---|
 | Name | ✅ | |
-| Category Code | ✅ | `L`, `D`, `M`, `P`, `N`, `S`, `PR` |
-| Department Code | — | `IT`, `ACCT`, `HR`, `PROD`, `SALES`, `ADMIN` |
+| Category | ✅ | `Laptop`, `Desktop`, `Monitor`, `Printer`, `Networking Device`, `Server`, `Peripheral` |
 | Brand, Model | — | |
 | Serial Number | — | Must be unique across the register |
 | Location | — | |
@@ -586,7 +628,7 @@ the form.
 
 Rows are validated one at a time. A bad row is **reported and skipped**; the rest of the workbook
 still lands. Afterwards you get a table of every rejected row with its spreadsheet line number and
-the reason — unknown category code, duplicate serial, missing name, and so on. Fix those rows in the
+the reason — unknown category, duplicate serial, missing name, and so on. Fix those rows in the
 original file and re-upload just them.
 
 Blank rows are ignored, so trailing empty rows are harmless.
@@ -724,10 +766,8 @@ Departments drive asset ownership, department-head scoping, and every department
 
 ### 13.3 Categories — IT Staff and Super Administrator
 
-Name, code, description. **The code becomes the asset tag prefix.**
-
-> Changing a category code does **not** rewrite tags already issued. You will end up with two
-> prefixes for one category. Get codes right at the start and leave them alone.
+Name and description. Categories classify the register and drive reporting; they take no part in
+the asset tag, so renaming one is safe at any time and never invalidates a printed label.
 
 ---
 
@@ -777,9 +817,6 @@ You cannot close your own ticket — IT Staff do that, and their resolution note
 Resolved and Rejected are final.
 
 ### 15.3 Codes
-
-**Categories:** `L` Laptop · `D` Desktop · `M` Monitor · `P` Printer · `N` Networking Device ·
-`S` Server · `PR` Peripheral
 
 **Departments:** `IT` Information Technology · `ACCT` Accounting · `HR` Human Resources ·
 `PROD` Production · `SALES` Sales and Marketing · `ADMIN` Administration

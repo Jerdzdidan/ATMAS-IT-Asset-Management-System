@@ -9,7 +9,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ImportAssetsRequest;
 use App\Imports\AssetsImport;
 use App\Models\AssetCategory;
-use App\Models\Department;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,8 +32,7 @@ class AssetPortabilityController extends Controller
     {
         return Inertia::render('admin/import-export', [
             'columns' => AssetImportTemplateExport::COLUMNS,
-            'categories' => AssetCategory::query()->select(['name', 'code'])->orderBy('code')->get(),
-            'departments' => Department::query()->select(['name', 'code'])->orderBy('code')->get(),
+            'categories' => AssetCategory::query()->select(['name'])->orderBy('name')->get(),
         ]);
     }
 
@@ -51,13 +49,12 @@ class AssetPortabilityController extends Controller
     }
 
     /**
-     * Download the blank import workbook, pre-filled with the codes this instance accepts.
+     * Download the blank import workbook, pre-filled with the values this instance accepts.
      */
     public function template(): BinaryFileResponse
     {
         return (new AssetImportTemplateExport(
-            AssetCategory::query()->orderBy('code')->pluck('code')->all(),
-            Department::query()->orderBy('code')->pluck('code')->all(),
+            AssetCategory::query()->orderBy('name')->pluck('name')->all(),
         ))->download('asset-import-template.xlsx');
     }
 

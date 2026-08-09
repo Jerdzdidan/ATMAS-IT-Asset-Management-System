@@ -41,7 +41,12 @@ class AssetAssignmentService
                 'notes' => $notes,
             ]);
 
-            $asset->update(['status' => AssetStatus::Assigned]);
+            $asset->update([
+                'status' => AssetStatus::Assigned,
+                // The accountable department follows custody rather than being set by hand, so it
+                // can never drift from whoever is actually holding the hardware.
+                'department_id' => $employee->department_id,
+            ]);
 
             return $assignment;
         });
@@ -80,6 +85,9 @@ class AssetAssignmentService
                 'status' => $asset->status === AssetStatus::UnderRepair
                     ? AssetStatus::UnderRepair
                     : AssetStatus::Available,
+                // Back in the shared pool, so no department is accountable for it until it is
+                // issued again.
+                'department_id' => null,
             ]);
         });
     }

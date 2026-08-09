@@ -1,7 +1,15 @@
 import { ReportChartCard, type ReportChart } from '@/components/admin/reports/report-chart';
 import { ReportDataTable, type ReportColumn, type ReportRows } from '@/components/admin/reports/report-data-table';
 import { ReportKpiCards, type ReportKpi } from '@/components/admin/reports/report-kpi-cards';
-import { ReportPdfDocument, pdfDocumentWidth, type ReportPdfPayload } from '@/components/admin/reports/report-pdf-document';
+import {
+    ReportPdfDocument,
+    pdfCaptureScale,
+    pdfPageHeightFor,
+    pdfPageMargins,
+    pdfPagePadding,
+    pdfWidthFor,
+    type ReportPdfPayload,
+} from '@/components/admin/reports/report-pdf-document';
 import { ReportSwitcher, type SwitcherReport } from '@/components/admin/reports/report-switcher';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -64,6 +72,65 @@ interface AdminReportPageComponentProps extends AdminReportPageProps {
 /** The Select component cannot hold an empty value, so "no filter" needs a stand-in. */
 const none = 'ALL';
 
+/** Wait for React to paint and Recharts to lay itself out before reading the DOM. */
+function settle(): Promise<void> {
+    return new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 250)));
+}
+
+/**
+ * Work out which row starts each page, from the heights the browser actually produced.
+ *
+ * Rows vary in height once text wraps, so guessing a row count per page would eventually slice
+ * one in half. Filling each page against measured heights — and stopping a little short of the
+ * true page height — leaves a sliver of white space instead.
+ */
+function measurePageBreaks(root: HTMLElement, documentWidth: number): { breaks: number[]; signoffOnOwnPage: boolean } {
+    const rows = Array.from(root.querySelectorAll<HTMLElement>('[data-pdf-row]'));
+    const head = root.querySelector<HTMLElement>('[data-pdf-head]');
+    const table = root.querySelector<HTMLElement>('[data-pdf-table]');
+    const signoff = root.querySelector<HTMLElement>('[data-pdf-signoff]');
+    const nothingToMeasure = { breaks: [], signoffOnOwnPage: false };
+
+    if (rows.length === 0 || head === null || table === null) {
+        return nothingToMeasure;
+    }
+
+    // The page box is padded, so the usable strip is the slice height less the padding.
+    const pageHeight = pdfPageHeightFor(documentWidth) - pdfPagePadding * 2;
+    const headHeight = head.getBoundingClientRect().height;
+    const rootTop = root.getBoundingClientRect().top;
+
+    // Everything above the table — masthead, filters, figures, chart — only costs the first page.
+    const firstPageAvailable = pageHeight - (table.getBoundingClientRect().top - rootTop - pdfPagePadding) - headHeight;
+    const laterPageAvailable = pageHeight - headHeight;
+
+    if (laterPageAvailable <= 0) {
+        return nothingToMeasure;
+    }
+
+    const breaks: number[] = [];
+    let available = firstPageAvailable;
+    let used = 0;
+
+    rows.forEach((row, index) => {
+        const height = row.getBoundingClientRect().height;
+
+        // Never break before at least one row has landed, or a tall row would loop forever.
+        if (used > 0 && used + height > available) {
+            breaks.push(index);
+            available = laterPageAvailable;
+            used = 0;
+        }
+
+        used += height;
+    });
+
+    // The sign-off follows the last row; give it its own page when that page is already full.
+    const signoffHeight = signoff?.getBoundingClientRect().height ?? 0;
+
+    return { breaks, signoffOnOwnPage: used + signoffHeight > available };
+}
+
 function queryFrom(filters: ReportFilters, extra: Record<string, string | number | null> = {}): Record<string, string> {
     return Object.entries({ ...filters, ...extra })
         .filter(([, value]) => value !== null && value !== '')
@@ -85,14 +152,24 @@ export function AdminReportPage({
     rows,
     reportUrl,
 }: AdminReportPageComponentProps) {
-    const { name: organisation } = usePage<SharedData>().props;
+    const { name: organisation, auth } = usePage<SharedData>().props;
     const [form, setForm] = useState(filters);
     const [perPage, setPerPage] = useState(25);
     const [busy, setBusy] = useState(false);
     const [pdfPayload, setPdfPayload] = useState<ReportPdfPayload | null>(null);
+    const [pageBreaks, setPageBreaks] = useState<number[]>([]);
+    const [signoffOnOwnPage, setSignoffOnOwnPage] = useState(false);
     const [buildingPdf, setBuildingPdf] = useState(false);
     const pdfRef = useRef<HTMLDivElement | null>(null);
-    const supports = (filter: AvailableFilter): boolean => availableFilters.includes(filter);
+    /*
+     * A department head is confined to one department by the server, so the picker would offer a
+     * single choice that changes nothing. Every other filter still applies within that scope.
+     */
+    const supports = (filter: AvailableFilter): boolean =>
+        availableFilters.includes(filter) && !(filter === 'department' && auth.permissions.is_department_scoped);
+
+    // A report with many columns is drawn wider, then scaled down onto the page.
+    const documentWidth = pdfWidthFor(columns.length);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
@@ -163,9 +240,24 @@ export function AdminReportPage({
 
             const payload: ReportPdfPayload = await response.json();
             setPdfPayload(payload);
+            setPageBreaks([]);
+            setSignoffOnOwnPage(false);
 
             // Let React paint the off-screen document, and Recharts lay its bars out, before capture.
-            await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 250)));
+            await settle();
+
+            if (pdfRef.current === null) {
+                throw new Error('The document could not be prepared.');
+            }
+
+            // Measure the laid-out rows, then re-render split into pages so each carries a header.
+            const layout = measurePageBreaks(pdfRef.current, documentWidth);
+
+            if (layout.breaks.length > 0 || layout.signoffOnOwnPage) {
+                setPageBreaks(layout.breaks);
+                setSignoffOnOwnPage(layout.signoffOnOwnPage);
+                await settle();
+            }
 
             if (pdfRef.current === null) {
                 throw new Error('The document could not be prepared.');
@@ -173,12 +265,28 @@ export function AdminReportPage({
 
             const { default: html2pdf } = await import('html2pdf.js');
 
+            /*
+             * Capture the width the document actually laid out at, not the width we asked for.
+             * html2canvas crops to the box it is given, so guessing narrow is what sliced the
+             * last columns off the page; html2pdf then scales whatever it gets to fit A4.
+             */
+            const captureWidth = Math.ceil(Math.max(pdfRef.current.scrollWidth, pdfRef.current.offsetWidth, documentWidth));
+
             await html2pdf()
                 .set({
                     filename: `${report.slug}-${new Date().toISOString().slice(0, 10)}.pdf`,
-                    margin: [8, 8, 10, 8],
+                    // Shared with the page-height ratio the break points were measured against.
+                    margin: [pdfPageMargins.top, pdfPageMargins.right, pdfPageMargins.bottom, pdfPageMargins.left],
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: pdfDocumentWidth },
+                    html2canvas: {
+                        scale: pdfCaptureScale,
+                        useCORS: true,
+                        backgroundColor: '#ffffff',
+                        width: captureWidth,
+                        windowWidth: captureWidth,
+                        scrollX: 0,
+                        scrollY: 0,
+                    },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
                 })
                 .from(pdfRef.current)
@@ -188,6 +296,8 @@ export function AdminReportPage({
         } finally {
             setBuildingPdf(false);
             setPdfPayload(null);
+            setPageBreaks([]);
+            setSignoffOnOwnPage(false);
         }
     }
 
@@ -421,8 +531,8 @@ export function AdminReportPage({
                 Recharts needs real dimensions to lay the chart out before html2canvas reads it.
             */}
             {pdfPayload && (
-                <div aria-hidden style={{ position: 'fixed', left: -20000, top: 0, width: pdfDocumentWidth, pointerEvents: 'none' }}>
-                    <div ref={pdfRef}>
+                <div aria-hidden style={{ position: 'absolute', left: -20000, top: 0, width: documentWidth, pointerEvents: 'none' }}>
+                    <div ref={pdfRef} style={{ width: documentWidth }}>
                         <ReportPdfDocument
                             organisation={organisation}
                             title={title}
@@ -433,6 +543,9 @@ export function AdminReportPage({
                             chart={chart}
                             payload={pdfPayload}
                             activeFilters={activeChips.map((chip) => chip.label)}
+                            width={documentWidth}
+                            pageBreaks={pageBreaks}
+                            signoffOnOwnPage={signoffOnOwnPage}
                         />
                     </div>
                 </div>

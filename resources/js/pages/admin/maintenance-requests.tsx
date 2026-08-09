@@ -1,4 +1,5 @@
 import { AdminDataTable, type AdminTableColumn } from '@/components/admin/admin-data-table';
+import { DepartmentScopeNote } from '@/components/department-scope-note';
 import { MaintenanceStatusBadge } from '@/components/status-badges';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -109,11 +110,8 @@ export default function MaintenanceRequestsPage({ requests }: MaintenanceRequest
             <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight">Maintenance requests</h1>
-                    <p className="text-muted-foreground">
-                        {permissions.is_department_scoped
-                            ? 'Repair queue for the hardware your department is accountable for.'
-                            : 'Repair queue submitted by employees for the hardware in their custody.'}
-                    </p>
+                    <p className="text-muted-foreground">Repair queue submitted by employees for the hardware in their custody.</p>
+                    <DepartmentScopeNote noun="tickets" />
                 </div>
                 <AdminDataTable
                     data={requests}
@@ -123,14 +121,20 @@ export default function MaintenanceRequestsPage({ requests }: MaintenanceRequest
                         `${item.asset?.asset_tag ?? ''} ${item.asset?.name ?? ''} ${item.requested_by?.name ?? ''} ${item.issue_description}`
                     }
                     onEdit={permissions.manages_assets ? openProcess : undefined}
-                    filterOptions={[
-                        { value: 'ALL', label: 'All statuses' },
-                        { value: 'PENDING', label: 'Pending' },
-                        { value: 'IN_PROGRESS', label: 'In progress' },
-                        { value: 'RESOLVED', label: 'Resolved' },
-                        { value: 'REJECTED', label: 'Rejected' },
+                    filters={[
+                        {
+                            key: 'status',
+                            label: 'Status',
+                            allLabel: 'All statuses',
+                            options: [
+                                { value: 'PENDING', label: 'Pending' },
+                                { value: 'IN_PROGRESS', label: 'In progress' },
+                                { value: 'RESOLVED', label: 'Resolved' },
+                                { value: 'REJECTED', label: 'Rejected' },
+                            ],
+                            getValue: (item) => item.status,
+                        },
                     ]}
-                    getFilterValue={(item) => item.status}
                 />
             </div>
 

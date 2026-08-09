@@ -44,6 +44,10 @@ class HandleInertiaRequests extends Middleware
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
                 'user' => $user,
+                // The department the signed-in account belongs to. Shared rather than fetched per
+                // page because a department head's whole view is bounded by it, so every screen
+                // needs to be able to name it.
+                'department' => $user?->department?->only(['id', 'name']),
                 // Mirrors the route middleware so pages can hide the actions a role cannot perform.
                 'permissions' => [
                     'manages_assets' => $user?->managesAssets() ?? false,

@@ -14,7 +14,7 @@ class AssetCategory extends Model
     use HasFactory, RecordsActivity;
 
     /** @var list<string> */
-    protected $fillable = ['name', 'code', 'description'];
+    protected $fillable = ['name', 'description'];
 
     /** @return HasMany<Asset, $this> */
     public function assets(): HasMany

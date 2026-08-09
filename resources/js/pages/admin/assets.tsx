@@ -1,6 +1,8 @@
 import { AdminDataTable, type AdminTableColumn } from '@/components/admin/admin-data-table';
+import { DepartmentScopeNote } from '@/components/department-scope-note';
 import { AssetConditionBadge, AssetStatusBadge } from '@/components/status-badges';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,15 +12,12 @@ import AppLayout from '@/layouts/app-layout';
 import { type AssetCondition, type AssetStatus, type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { ArrowDownUp, ImageOff, Plus, QrCode, Tags } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
 interface AssetCategoryOption {
     id: number;
     name: string;
-    code: string;
-    /** Next sequence the category would issue this year, used only for the preview. */
-    next_number: number;
 }
 
 interface ManagedAsset {
@@ -50,7 +49,6 @@ interface ManagedAsset {
 type AssetFormData = {
     name: string;
     asset_category_id: string;
-    department_id: string;
     brand: string;
     model: string;
     serial_number: string;
@@ -65,8 +63,8 @@ type AssetFormData = {
 interface AssetsPageProps {
     assets: ManagedAsset[];
     categories: AssetCategoryOption[];
-    departments: { id: number; name: string }[];
     currentYear: number;
+    nextTagNumber: number;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -74,12 +72,24 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Assets', href: '/admin/assets' },
 ];
 
-const unassignedDepartment = 'NONE';
+/** Stands for "no department" or "nobody" in a filter, since a select value cannot be empty. */
+const noneFilterValue = 'NONE';
+
+/**
+ * The distinct values actually present in the register, alphabetised.
+ *
+ * Built from the rows rather than from the full category and department lists so a filter never
+ * offers a choice that would empty the table, and so a department head only sees their own.
+ */
+function presentOptions(values: (string | null | undefined)[]): { value: string; label: string }[] {
+    return [...new Set(values.filter((value): value is string => Boolean(value)))]
+        .sort((left, right) => left.localeCompare(right))
+        .map((value) => ({ value, label: value }));
+}
 
 const emptyForm: AssetFormData = {
     name: '',
     asset_category_id: '',
-    department_id: unassignedDepartment,
     brand: '',
     model: '',
     serial_number: '',
@@ -91,7 +101,7 @@ const emptyForm: AssetFormData = {
     remarks: '',
 };
 
-export default function AssetsPage({ assets, categories, departments, currentYear }: AssetsPageProps) {
+export default function AssetsPage({ assets, categories, currentYear, nextTagNumber }: AssetsPageProps) {
     const { permissions } = usePage<SharedData>().props.auth;
     const [formOpen, setFormOpen] = useState(false);
     const [editingAsset, setEditingAsset] = useState<ManagedAsset | null>(null);
@@ -99,13 +109,10 @@ export default function AssetsPage({ assets, categories, departments, currentYea
     const form = useForm<AssetFormData>(emptyForm);
     const deleteForm = useForm<Record<string, never>>({});
 
-    const selectedCategory = categories.find((category) => String(category.id) === form.data.asset_category_id);
     const parsedYear = Number(form.data.purchase_date.slice(0, 4));
     const tagYear = Number.isInteger(parsedYear) && parsedYear > 1900 ? parsedYear : currentYear;
     // Only the running total for the current year is known here, so older years show a placeholder.
-    const previewTag = selectedCategory
-        ? `${selectedCategory.code}-${tagYear}-${tagYear === currentYear ? String(selectedCategory.next_number).padStart(4, '0') : '####'}`
-        : null;
+    const previewTag = `${tagYear}-${tagYear === currentYear ? String(nextTagNumber).padStart(4, '0') : '####'}`;
 
     const columns: AdminTableColumn<ManagedAsset>[] = [
         {
@@ -172,7 +179,6 @@ export default function AssetsPage({ assets, categories, departments, currentYea
         form.setData({
             name: asset.name,
             asset_category_id: String(asset.asset_category_id),
-            department_id: asset.department_id ? String(asset.department_id) : unassignedDepartment,
             brand: asset.brand ?? '',
             model: asset.model ?? '',
             serial_number: asset.serial_number ?? '',
@@ -198,12 +204,6 @@ export default function AssetsPage({ assets, categories, departments, currentYea
             },
         };
 
-        // The select needs a non-empty sentinel, but the API expects a null department.
-        form.transform((data) => ({
-            ...data,
-            department_id: data.department_id === unassignedDepartment || data.department_id === '' ? null : data.department_id,
-        }));
-
         if (editingAsset) form.put(`/admin/assets/${editingAsset.id}`, options);
         else form.post('/admin/assets', options);
     }
@@ -226,11 +226,8 @@ export default function AssetsPage({ assets, categories, departments, currentYea
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">Asset register</h1>
-                        <p className="text-muted-foreground">
-                            {permissions.is_department_scoped
-                                ? 'The hardware allocated to your department, its custodians, and its lifecycle status.'
-                                : 'Track every hardware asset, its custodian, and its lifecycle status.'}
-                        </p>
+                        <p className="text-muted-foreground">Track every hardware asset, its custodian, and its lifecycle status.</p>
+                        <DepartmentScopeNote noun="hardware" />
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Button asChild variant="outline">
@@ -267,14 +264,72 @@ export default function AssetsPage({ assets, categories, departments, currentYea
                     onView={(asset) => router.visit(`/admin/assets/${asset.id}`)}
                     onEdit={permissions.manages_assets ? openEdit : undefined}
                     onDelete={permissions.manages_assets ? setDeletingAsset : undefined}
-                    filterOptions={[
-                        { value: 'ALL', label: 'All statuses' },
-                        { value: 'AVAILABLE', label: 'Available' },
-                        { value: 'ASSIGNED', label: 'Assigned' },
-                        { value: 'UNDER_REPAIR', label: 'Under repair' },
-                        { value: 'RETIRED', label: 'Retired' },
+                    filters={[
+                        {
+                            key: 'status',
+                            label: 'Status',
+                            allLabel: 'All statuses',
+                            // The one filter worth a permanent dropdown: it is reached for constantly.
+                            standalone: true,
+                            className: 'w-full sm:w-40',
+                            options: [
+                                { value: 'AVAILABLE', label: 'Available' },
+                                { value: 'ASSIGNED', label: 'Assigned' },
+                                { value: 'UNDER_REPAIR', label: 'Under repair' },
+                                { value: 'RETIRED', label: 'Retired' },
+                            ],
+                            getValue: (asset) => asset.status,
+                        },
+                        {
+                            key: 'category',
+                            label: 'Category',
+                            allLabel: 'Any category',
+                            options: presentOptions(assets.map((asset) => asset.category?.name)),
+                            getValue: (asset) => asset.category?.name ?? noneFilterValue,
+                        },
+                        // A department head only ever sees one department, so the filter would be
+                        // a dropdown with a single choice.
+                        ...(permissions.is_department_scoped
+                            ? []
+                            : [
+                                  {
+                                      key: 'department',
+                                      label: 'Department',
+                                      allLabel: 'Any department',
+                                      options: [
+                                          ...presentOptions(assets.map((asset) => asset.department?.name)),
+                                          { value: noneFilterValue, label: 'No department' },
+                                      ],
+                                      getValue: (asset: ManagedAsset) => asset.department?.name ?? noneFilterValue,
+                                  },
+                              ]),
+                        {
+                            key: 'condition',
+                            label: 'Condition',
+                            allLabel: 'Any condition',
+                            options: [
+                                { value: 'NEW', label: 'New' },
+                                { value: 'GOOD', label: 'Good' },
+                                { value: 'FAIR', label: 'Fair' },
+                                { value: 'POOR', label: 'Poor' },
+                            ],
+                            getValue: (asset) => asset.condition,
+                        },
+                        {
+                            key: 'holder',
+                            label: 'Assigned to',
+                            allLabel: 'Anyone',
+                            options: [
+                                { value: noneFilterValue, label: 'Unassigned' },
+                                ...presentOptions(assets.map((asset) => asset.current_assignment?.user?.name)),
+                            ],
+                            getValue: (asset) => asset.current_assignment?.user?.name ?? noneFilterValue,
+                        },
                     ]}
-                    getFilterValue={(asset) => asset.status}
+                    renderCard={(asset, actions) => (
+                        <AssetCard asset={asset} actions={actions} onOpen={() => router.visit(`/admin/assets/${asset.id}`)} />
+                    )}
+                    viewStorageKey="assets"
                 />
             </div>
 
@@ -288,19 +343,13 @@ export default function AssetsPage({ assets, categories, departments, currentYea
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="space-y-2 sm:col-span-2">
                                 <Label>Asset tag</Label>
-                                <div className="bg-muted/50 text-muted-foreground flex h-10 items-center rounded-md border px-3 font-mono text-sm">
-                                    {editingAsset ? (
-                                        <span className="text-foreground">{editingAsset.asset_tag}</span>
-                                    ) : previewTag ? (
-                                        <span className="text-foreground">{previewTag}</span>
-                                    ) : (
-                                        'Select a category to preview the tag'
-                                    )}
+                                <div className="bg-muted/50 text-foreground flex h-10 items-center rounded-md border px-3 font-mono text-sm">
+                                    {editingAsset ? editingAsset.asset_tag : previewTag}
                                 </div>
                                 <p className="text-muted-foreground text-xs">
                                     {editingAsset
-                                        ? 'Asset tags are permanent once issued so they keep matching the label on the device. Changing the category will not re-issue it.'
-                                        : 'Generated on save from the category code, acquisition year, and a running number.'}
+                                        ? 'Asset tags are permanent once issued so they keep matching the label on the device.'
+                                        : 'Generated on save from the acquisition year and a running number.'}
                                 </p>
                             </div>
                             <div className="space-y-2">
@@ -326,23 +375,17 @@ export default function AssetsPage({ assets, categories, departments, currentYea
                             </div>
                             <div className="space-y-2">
                                 <Label>Department</Label>
-                                <Select value={form.data.department_id} onValueChange={(value) => form.setData('department_id', value)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a department" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={unassignedDepartment}>Unassigned</SelectItem>
-                                        {departments.map((department) => (
-                                            <SelectItem key={department.id} value={String(department.id)}>
-                                                {department.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <div className="bg-muted/50 flex h-10 items-center rounded-md border px-3 text-sm">
+                                    {editingAsset?.department ? (
+                                        editingAsset.department.name
+                                    ) : (
+                                        <span className="text-muted-foreground">None until issued</span>
+                                    )}
+                                </div>
                                 <p className="text-muted-foreground text-xs">
-                                    The department accountable for the asset. It stays put when the asset changes hands.
+                                    Taken from whoever holds the asset, so it cannot contradict the custody record. Issue the asset to someone to
+                                    place it in their department.
                                 </p>
-                                {form.errors.department_id && <p className="text-destructive text-sm">{form.errors.department_id}</p>}
                             </div>
                             <div className="space-y-2">
                                 <Label>Condition</Label>
@@ -462,5 +505,69 @@ export default function AssetsPage({ assets, categories, departments, currentYea
                 </DialogContent>
             </Dialog>
         </AppLayout>
+    );
+}
+
+interface AssetCardProps {
+    asset: ManagedAsset;
+    actions: ReactNode;
+    onOpen: () => void;
+}
+
+/** The grid-view counterpart of a table row: the photo first, then the same identifying columns. */
+function AssetCard({ asset, actions, onOpen }: AssetCardProps) {
+    const hardware = [asset.brand, asset.model].filter(Boolean).join(' ');
+    const holder = asset.current_assignment?.user?.name;
+
+    return (
+        <Card className="focus-within:ring-ring group relative flex h-full flex-col overflow-hidden transition-shadow focus-within:ring-2 hover:shadow-md">
+            {/*
+                A stretched button rather than a click handler on the card itself: it keeps the
+                whole surface clickable while staying reachable by keyboard. It sits above the text
+                so a stray click never lands short, and the actions menu is lifted above it in turn.
+            */}
+            <button type="button" onClick={onOpen} className="absolute inset-0 z-10 cursor-pointer focus:outline-hidden">
+                <span className="sr-only">View {asset.asset_tag}</span>
+            </button>
+
+            <div className="bg-muted flex aspect-[16/10] items-center justify-center overflow-hidden border-b">
+                {asset.primary_photo ? (
+                    <img src={asset.primary_photo.url} alt="" className="size-full object-cover transition-transform group-hover:scale-105" />
+                ) : (
+                    <ImageOff className="text-muted-foreground size-8" />
+                )}
+            </div>
+
+            <div className="flex flex-1 flex-col gap-3 p-4">
+                <div className="min-w-0">
+                    <p className="text-muted-foreground font-mono text-xs">{asset.asset_tag}</p>
+                    <p className="truncate font-medium">{asset.name}</p>
+                    <p className="text-muted-foreground truncate text-sm">{hardware || (asset.serial_number ?? '—')}</p>
+                </div>
+
+                <dl className="grid gap-1 text-sm">
+                    <div className="flex justify-between gap-3">
+                        <dt className="text-muted-foreground shrink-0">Category</dt>
+                        <dd className="truncate">{asset.category?.name ?? '—'}</dd>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                        <dt className="text-muted-foreground shrink-0">Department</dt>
+                        <dd className="truncate">{asset.department?.name ?? '—'}</dd>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                        <dt className="text-muted-foreground shrink-0">Assigned to</dt>
+                        <dd className="truncate">{holder ?? <span className="text-muted-foreground">Unassigned</span>}</dd>
+                    </div>
+                </dl>
+
+                <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+                    <div className="flex flex-wrap gap-2">
+                        <AssetConditionBadge condition={asset.condition} />
+                        <AssetStatusBadge status={asset.status} />
+                    </div>
+                    <div className="relative z-20">{actions}</div>
+                </div>
+            </div>
+        </Card>
     );
 }
