@@ -64,7 +64,7 @@
     --color-brand: var(--brand);
     --color-brand-foreground: var(--brand-foreground);
     --color-brand-soft: var(--brand-soft);
-    --color-brand-deep: var(--brand-deep);
+    --color-brand-soft-foreground: var(--brand-soft-foreground);
 
     --color-success: var(--success);
     --color-success-foreground: var(--success-foreground);
@@ -139,17 +139,7 @@
     --brand: hsl(227, 47%, 42%);
     --brand-foreground: hsl(0, 0%, 100%);
     --brand-soft: hsl(227, 60%, 96%);
-    /*
-      The dashboard masthead's ground: graphite, carrying a trace of the interface's blue rather
-      than a pure grey, so it sits with the chrome instead of against it.
-
-      Deliberately not a colour. A saturated panel in any single hue either repeats a colour the
-      status badges have already given a meaning, or introduces a ninth that the brand does not
-      own. The ring itself supplies the panel's only colour, as a rule under the greeting. This
-      is also the one token that does not follow the theme — --brand inverts to a pale tint in
-      the dark palette, and a pale panel would shout over the cards below it.
-    */
-    --brand-deep: hsl(225, 14%, 9%);
+    --brand-soft-foreground: hsl(227, 47%, 34%);
     --success: hsl(158, 100%, 24%);
     --success-foreground: hsl(0, 0%, 100%);
     --warning: hsl(19, 92%, 42%);
@@ -196,8 +186,7 @@
     --brand: hsl(227, 72%, 68%);
     --brand-foreground: hsl(227, 40%, 12%);
     --brand-soft: hsl(227, 30%, 18%);
-    /* Deliberately unchanged from the light palette; see the note there. */
-    --brand-deep: hsl(225, 14%, 9%);
+    --brand-soft-foreground: hsl(227, 72%, 82%);
     --success: hsl(158, 60%, 45%);
     --success-foreground: hsl(227, 40%, 10%);
     --warning: hsl(19, 95%, 62%);
