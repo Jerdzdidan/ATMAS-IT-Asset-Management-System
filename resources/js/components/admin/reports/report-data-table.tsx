@@ -1,3 +1,4 @@
+import { Pagination } from '@/components/pagination';
 import { AssetConditionBadge, AssetStatusBadge } from '@/components/status-badges';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -119,38 +120,6 @@ function ReportCell({ column, value }: { column: ReportColumn; value: string | n
     }
 }
 
-function PageNumbers({ rows, onPageChange }: { rows: ReportRows; onPageChange: (page: number) => void }) {
-    const current = rows.current_page;
-    const last = rows.last_page;
-    const pages = new Set<number>([1, last, current, current - 1, current + 1]);
-    const visible = [...pages].filter((page) => page >= 1 && page <= last).sort((left, right) => left - right);
-
-    return (
-        <div className="flex flex-wrap items-center gap-1">
-            <Button type="button" size="sm" variant="outline" disabled={current <= 1} onClick={() => onPageChange(current - 1)}>
-                Previous
-            </Button>
-            {visible.map((page, index) => (
-                <span key={page} className="flex items-center gap-1">
-                    {index > 0 && visible[index - 1] !== page - 1 && <span className="text-muted-foreground px-1">…</span>}
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant={page === current ? 'default' : 'outline'}
-                        className="min-w-9"
-                        onClick={() => onPageChange(page)}
-                    >
-                        {page}
-                    </Button>
-                </span>
-            ))}
-            <Button type="button" size="sm" variant="outline" disabled={current >= last} onClick={() => onPageChange(current + 1)}>
-                Next
-            </Button>
-        </div>
-    );
-}
-
 export function ReportDataTable({ columns, rows, sort, onPageChange, onSortChange, onReset }: ReportDataTableProps) {
     if (rows.total === 0) {
         return (
@@ -215,7 +184,7 @@ export function ReportDataTable({ columns, rows, sort, onPageChange, onSortChang
                 <span>
                     Showing {rows.from?.toLocaleString('en-PH')}–{rows.to?.toLocaleString('en-PH')} of {rows.total.toLocaleString('en-PH')} records
                 </span>
-                <PageNumbers rows={rows} onPageChange={onPageChange} />
+                <Pagination page={rows.current_page} pageCount={rows.last_page} onPageChange={onPageChange} />
             </div>
         </div>
     );

@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type AssetCondition, type AssetStatus, type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { ArrowDownUp, ImageOff, Plus, Printer, QrCode } from 'lucide-react';
+import { ArrowDownUp, ImageOff, Plus, QrCode, Tags } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 
@@ -239,9 +239,9 @@ export default function AssetsPage({ assets, categories, departments, currentYea
                             </Link>
                         </Button>
                         <Button asChild variant="outline">
-                            <a href="/admin/labels" target="_blank" rel="noreferrer">
-                                <Printer /> Print labels
-                            </a>
+                            <Link href="/admin/labels">
+                                <Tags /> Labels
+                            </Link>
                         </Button>
                         {permissions.manages_assets && (
                             <Button asChild variant="outline">

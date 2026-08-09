@@ -1,3 +1,4 @@
+import { Pagination } from '@/components/pagination';
 import { AssetConditionBadge, AssetStatusBadge } from '@/components/status-badges';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +7,7 @@ import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { type AssetCondition, type AssetStatus, type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
+import { useState } from 'react';
 
 interface AssignedAsset {
     id: number;
@@ -38,9 +40,15 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'My Assets', href: '/my/assets' },
 ];
 
+const pageSize = 10;
+
 export default function EmployeeAssetsPage({ assignments }: EmployeeAssetsPageProps) {
+    const [page, setPage] = useState(1);
     const activeAssignments = assignments.filter((assignment) => assignment.returned_at === null);
     const pastAssignments = assignments.filter((assignment) => assignment.returned_at !== null);
+    const pageCount = Math.max(1, Math.ceil(pastAssignments.length / pageSize));
+    const currentPage = Math.min(page, pageCount);
+    const visiblePastAssignments = pastAssignments.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -126,14 +134,14 @@ export default function EmployeeAssetsPage({ assignments }: EmployeeAssetsPagePr
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {pastAssignments.length === 0 ? (
+                                    {visiblePastAssignments.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={4} className="text-muted-foreground h-24 text-center">
                                                 No returned equipment on record.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        pastAssignments.map((assignment) => (
+                                        visiblePastAssignments.map((assignment) => (
                                             <TableRow key={assignment.id}>
                                                 <TableCell className="font-medium">{assignment.asset?.asset_tag ?? '—'}</TableCell>
                                                 <TableCell>{assignment.asset?.name ?? '—'}</TableCell>
@@ -147,6 +155,15 @@ export default function EmployeeAssetsPage({ assignments }: EmployeeAssetsPagePr
                                 </TableBody>
                             </Table>
                         </div>
+                        {pageCount > 1 && (
+                            <div className="text-muted-foreground flex flex-col gap-3 pt-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+                                <span>
+                                    {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, pastAssignments.length)} of{' '}
+                                    {pastAssignments.length}
+                                </span>
+                                <Pagination page={currentPage} pageCount={pageCount} onPageChange={setPage} />
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

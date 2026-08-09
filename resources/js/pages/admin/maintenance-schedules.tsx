@@ -2,6 +2,7 @@ import { AdminDataTable, type AdminTableColumn } from '@/components/admin/admin-
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Combobox } from '@/components/ui/combobox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -278,19 +279,19 @@ export default function MaintenanceSchedulesPage({ schedules, assets, frequencie
                     <form onSubmit={submit} className="space-y-4">
                         {!editing && (
                             <div className="space-y-2">
-                                <Label>Asset</Label>
-                                <Select value={form.data.asset_id} onValueChange={(value) => form.setData('asset_id', value)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select an asset" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {assets.map((asset) => (
-                                            <SelectItem key={asset.id} value={String(asset.id)}>
-                                                {asset.asset_tag} — {asset.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Label htmlFor="schedule-asset">Asset</Label>
+                                <Combobox
+                                    id="schedule-asset"
+                                    value={form.data.asset_id}
+                                    onValueChange={(value) => form.setData('asset_id', value)}
+                                    placeholder="Search by asset tag or name"
+                                    emptyMessage="No asset matches that search."
+                                    options={assets.map((asset) => ({
+                                        value: String(asset.id),
+                                        label: asset.asset_tag,
+                                        description: asset.name,
+                                    }))}
+                                />
                                 {form.errors.asset_id && <p className="text-destructive text-sm">{form.errors.asset_id}</p>}
                             </div>
                         )}

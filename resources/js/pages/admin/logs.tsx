@@ -1,3 +1,4 @@
+import { Pagination } from '@/components/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,7 @@ import { formatDateTime } from '@/lib/format';
 import { type AuditEventType, type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { RotateCcw } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 interface ActivityEntry {
     id: number;
@@ -59,6 +60,8 @@ function humanizeField(field: string): string {
     return field.replace(/_id$/, '').replace(/_/g, ' ');
 }
 
+const pageSize = 25;
+
 export default function LogsPage({ entries, filters, eventOptions, windowSize, isTruncated }: LogsPageProps) {
     const [draft, setDraft] = useState({
         event: filters.event,
@@ -66,18 +69,25 @@ export default function LogsPage({ entries, filters, eventOptions, windowSize, i
         to: filters.to ?? '',
         search: filters.search,
     });
+    const [page, setPage] = useState(1);
 
     function apply(next: Partial<typeof draft>): void {
         const merged = { ...draft, ...next };
         setDraft(merged);
+        setPage(1);
         router.get('/admin/logs', merged, { preserveState: true, preserveScroll: true, replace: true });
     }
 
     function reset(): void {
         const cleared = { event: 'ALL', from: '', to: '', search: '' };
         setDraft(cleared);
+        setPage(1);
         router.get('/admin/logs', {}, { preserveState: true, preserveScroll: true, replace: true });
     }
+
+    const pageCount = Math.max(1, Math.ceil(entries.length / pageSize));
+    const currentPage = Math.min(page, pageCount);
+    const visibleEntries = useMemo(() => entries.slice((currentPage - 1) * pageSize, currentPage * pageSize), [currentPage, entries]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -146,14 +156,14 @@ export default function LogsPage({ entries, filters, eventOptions, windowSize, i
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {entries.length === 0 ? (
+                            {visibleEntries.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={6} className="text-muted-foreground h-24 text-center">
                                         No activity matches these filters.
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                entries.map((entry) => (
+                                visibleEntries.map((entry) => (
                                     <TableRow key={entry.id}>
                                         <TableCell className="text-muted-foreground text-xs">{formatDateTime(entry.created_at)}</TableCell>
                                         <TableCell>
@@ -189,11 +199,15 @@ export default function LogsPage({ entries, filters, eventOptions, windowSize, i
                     </Table>
                 </div>
 
-                <p className="text-muted-foreground text-xs">
-                    {isTruncated
-                        ? `Showing the most recent ${windowSize} entries. Narrow the date range to reach older activity.`
-                        : `${entries.length} entr${entries.length === 1 ? 'y' : 'ies'} shown.`}
-                </p>
+                <div className="text-muted-foreground flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                    <span>
+                        {entries.length === 0
+                            ? '0 entries'
+                            : `${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, entries.length)} of ${entries.length} entries`}
+                        {isTruncated ? ` (most recent ${windowSize}; narrow the date range to reach older activity)` : ''}
+                    </span>
+                    {pageCount > 1 && <Pagination page={currentPage} pageCount={pageCount} onPageChange={setPage} />}
+                </div>
             </div>
         </AppLayout>
     );

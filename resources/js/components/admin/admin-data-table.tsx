@@ -1,3 +1,4 @@
+import { Pagination } from '@/components/pagination';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -203,26 +204,7 @@ export function AdminDataTable<T extends object>({
                     {filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, filtered.length)} of{' '}
                     {filtered.length}
                 </span>
-                <div className="flex gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={currentPage <= 1}
-                        onClick={() => setPage((value) => Math.max(1, value - 1))}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={currentPage >= pageCount}
-                        onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-                    >
-                        Next
-                    </Button>
-                </div>
+                <Pagination page={currentPage} pageCount={pageCount} onPageChange={setPage} />
             </div>
         </div>
     );

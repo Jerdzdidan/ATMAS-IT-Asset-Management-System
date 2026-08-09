@@ -11,6 +11,7 @@ use App\Services\AuditLogger;
 use App\Services\Reports\ReportBuilder;
 use App\Services\Reports\ReportCatalog;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -118,6 +119,40 @@ class ReportController extends Controller
         return $format === 'csv'
             ? $export->download($filename.'.csv', ExcelFormat::CSV)
             : $export->download($filename.'.xlsx');
+    }
+
+    /**
+     * The complete, unpaged result set behind the report, as JSON.
+     *
+     * Feeds the browser-side PDF builder, which needs every row rather than the page currently
+     * on screen. The audit entry records it as a PDF export because that is what the caller is
+     * actually producing.
+     */
+    public function data(Request $request, string $slug): JsonResponse|RedirectResponse
+    {
+        $key = ReportCatalog::keyFromSlug($slug);
+
+        if ($key === null) {
+            return to_route('admin.reports.index');
+        }
+
+        $definition = ReportCatalog::definition($key);
+        $filters = $this->filters($request, $key);
+        $built = $this->reports->buildForExport($key, $request->user(), $filters, $this->options($request, $key));
+
+        $this->auditLogger->record(
+            AuditEvent::Exported,
+            null,
+            sprintf('Exported the "%s" report as PDF', $definition['title']),
+        );
+
+        return response()->json([
+            'rows' => $built['rows'],
+            'kpis' => $built['kpis'],
+            'period' => $this->period($filters),
+            'generatedBy' => $request->user()->name,
+            'generatedAt' => now()->toIso8601String(),
+        ]);
     }
 
     /**

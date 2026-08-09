@@ -6,6 +6,7 @@ use App\Models\Asset;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\Writer\PngWriter;
+use Endroid\QrCode\Writer\Result\ResultInterface;
 use Illuminate\Support\Str;
 
 /**
@@ -34,13 +35,29 @@ class AssetQrCodeGenerator
      */
     public function dataUri(Asset $asset, int $size = 320): string
     {
+        return $this->build($asset, $size)->getDataUri();
+    }
+
+    /**
+     * The raw PNG bytes, for serving the code as a downloadable image.
+     */
+    public function pngBinary(Asset $asset, int $size = 640): string
+    {
+        return $this->build($asset, $size)->getString();
+    }
+
+    /**
+     * Build the underlying PNG result once, so both renderings stay identical.
+     */
+    private function build(Asset $asset, int $size): ResultInterface
+    {
         return (new Builder(
             writer: new PngWriter,
             data: $this->payloadFor($asset),
             errorCorrectionLevel: self::CORRECTION_LEVEL,
             size: $size,
             margin: 8,
-        ))->build()->getDataUri();
+        ))->build();
     }
 
     /**

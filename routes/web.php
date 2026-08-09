@@ -46,6 +46,8 @@ Route::middleware(['auth', 'register.viewer'])->prefix('admin')->name('admin.')-
     Route::get('scan', [AssetLookupController::class, 'scan'])->name('scan.index');
     Route::post('scan', [AssetLookupController::class, 'resolve'])->name('scan.resolve');
     Route::get('labels', [AssetLabelController::class, 'sheet'])->name('labels.sheet');
+    Route::get('labels/download', [AssetLabelController::class, 'download'])->name('labels.download');
+    Route::get('assets/{asset}/label', [AssetLabelController::class, 'single'])->name('assets.label');
 
     /*
      * The catalogue lists the reports; each one then lives at its own address so a filtered
@@ -59,6 +61,9 @@ Route::middleware(['auth', 'register.viewer'])->prefix('admin')->name('admin.')-
     Route::get('reports/{slug}/export', [ReportController::class, 'export'])
         ->whereIn('slug', ReportCatalog::slugs())
         ->name('reports.export');
+    Route::get('reports/{slug}/data', [ReportController::class, 'data'])
+        ->whereIn('slug', ReportCatalog::slugs())
+        ->name('reports.data');
 });
 
 Route::middleware(['auth', 'asset.manager'])->prefix('admin')->name('admin.')->group(function () {

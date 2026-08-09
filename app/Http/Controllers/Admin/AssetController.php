@@ -119,7 +119,7 @@ class AssetController extends Controller
                 ->orderBy('name')
                 ->get(),
             'qrCode' => $this->qrCodes->dataUri($asset),
-            'labelUrl' => route('admin.labels.sheet', ['assets' => [$asset->id]]),
+            'labelPngUrl' => route('admin.assets.label', $asset),
         ]);
     }
 

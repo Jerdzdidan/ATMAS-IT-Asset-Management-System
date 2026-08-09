@@ -64,7 +64,15 @@ export default function ScanPage() {
 
             await scanner.start(
                 { facingMode: 'environment' },
-                { fps: 10, qrbox: { width: 240, height: 240 } },
+                {
+                    fps: 10,
+                    // Sized off the viewfinder: a fixed box larger than the video stream is rejected.
+                    qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+                        const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.7);
+
+                        return { width: edge, height: edge };
+                    },
+                },
                 (decodedText: string) => {
                     // A held camera fires the same code many times a second; only act once.
                     if (handledRef.current) {
@@ -124,12 +132,17 @@ export default function ScanPage() {
                             <CardDescription>Browsers only release the camera over HTTPS or on localhost.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div
-                                id={READER_ID}
-                                className="bg-muted flex min-h-64 items-center justify-center overflow-hidden rounded-md border [&_video]:w-full"
-                            >
+                            <div className="bg-muted relative flex min-h-64 items-center justify-center overflow-hidden rounded-md border">
+                                {/*
+                                    The reader element belongs to html5-qrcode alone and must stay empty as far as
+                                    React is concerned. If React also had children to reconcile here it would try to
+                                    remove nodes the library had already replaced, which throws during commit and
+                                    takes the whole page down with it. The placeholder is therefore a sibling.
+                                */}
+                                <div id={READER_ID} className="w-full [&_video]:w-full" />
+
                                 {cameraState !== 'running' && (
-                                    <div className="text-muted-foreground flex flex-col items-center gap-2 p-6 text-center text-sm">
+                                    <div className="text-muted-foreground pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 p-6 text-center text-sm">
                                         <ScanLine className="size-8" />
                                         {cameraState === 'starting' ? 'Requesting camera access…' : 'The camera preview appears here.'}
                                     </div>

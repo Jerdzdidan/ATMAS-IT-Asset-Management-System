@@ -1,3 +1,4 @@
+import { Pagination } from '@/components/pagination';
 import { MaintenanceStatusBadge } from '@/components/status-badges';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,10 +44,15 @@ const requestTypeLabels: Record<MaintenanceRequestType, string> = {
 };
 
 const emptyForm = { asset_id: '', request_type: 'REPAIR' as MaintenanceRequestType, issue_description: '' };
+const pageSize = 10;
 
 export default function EmployeeRequestsPage({ requests, assignedAssets }: EmployeeRequestsPageProps) {
     const [formOpen, setFormOpen] = useState(false);
+    const [page, setPage] = useState(1);
     const form = useForm(emptyForm);
+    const pageCount = Math.max(1, Math.ceil(requests.length / pageSize));
+    const currentPage = Math.min(page, pageCount);
+    const visibleRequests = requests.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
     function openCreate(): void {
         form.setData(emptyForm);
@@ -108,14 +114,14 @@ export default function EmployeeRequestsPage({ requests, assignedAssets }: Emplo
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {requests.length === 0 ? (
+                                    {visibleRequests.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={6} className="text-muted-foreground h-24 text-center">
                                                 You have not submitted any maintenance requests yet.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        requests.map((item) => (
+                                        visibleRequests.map((item) => (
                                             <TableRow key={item.id}>
                                                 <TableCell className="font-medium">{item.asset?.asset_tag ?? '—'}</TableCell>
                                                 <TableCell>{requestTypeLabels[item.request_type]}</TableCell>
@@ -136,6 +142,14 @@ export default function EmployeeRequestsPage({ requests, assignedAssets }: Emplo
                                 </TableBody>
                             </Table>
                         </div>
+                        {pageCount > 1 && (
+                            <div className="text-muted-foreground flex flex-col gap-3 pt-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+                                <span>
+                                    {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, requests.length)} of {requests.length}
+                                </span>
+                                <Pagination page={currentPage} pageCount={pageCount} onPageChange={setPage} />
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

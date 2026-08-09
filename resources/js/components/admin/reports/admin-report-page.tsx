@@ -1,6 +1,7 @@
 import { ReportChartCard, type ReportChart } from '@/components/admin/reports/report-chart';
 import { ReportDataTable, type ReportColumn, type ReportRows } from '@/components/admin/reports/report-data-table';
 import { ReportKpiCards, type ReportKpi } from '@/components/admin/reports/report-kpi-cards';
+import { ReportPdfDocument, pdfDocumentWidth, type ReportPdfPayload } from '@/components/admin/reports/report-pdf-document';
 import { ReportSwitcher, type SwitcherReport } from '@/components/admin/reports/report-switcher';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,10 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
-import { type AssetStatus, type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
-import { CalendarRange, Download, LayoutGrid, LoaderCircle, Printer, RotateCcw, X } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { type AssetStatus, type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, router, usePage } from '@inertiajs/react';
+import { CalendarRange, Download, FileDown, LayoutGrid, LoaderCircle, RotateCcw, X } from 'lucide-react';
+import { useRef, useState, type FormEvent } from 'react';
+import { toast } from 'sonner';
 
 type ReportFilters = {
     department_id: number | null;
@@ -83,9 +85,13 @@ export function AdminReportPage({
     rows,
     reportUrl,
 }: AdminReportPageComponentProps) {
+    const { name: organisation } = usePage<SharedData>().props;
     const [form, setForm] = useState(filters);
     const [perPage, setPerPage] = useState(25);
     const [busy, setBusy] = useState(false);
+    const [pdfPayload, setPdfPayload] = useState<ReportPdfPayload | null>(null);
+    const [buildingPdf, setBuildingPdf] = useState(false);
+    const pdfRef = useRef<HTMLDivElement | null>(null);
     const supports = (filter: AvailableFilter): boolean => availableFilters.includes(filter);
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -133,8 +139,56 @@ export function AdminReportPage({
     }
 
     /** Export always mirrors what the server rendered, not unapplied form edits. */
-    function exportReport(format: 'xlsx' | 'csv' | 'pdf'): void {
+    function exportReport(format: 'xlsx' | 'csv'): void {
         window.location.assign(`${reportUrl}/export?${new URLSearchParams(queryFrom(filters, { format })).toString()}`);
+    }
+
+    /**
+     * Build the PDF in the browser so the chart travels with it.
+     *
+     * The rows come from the unpaged endpoint rather than the table on screen, so the document
+     * carries the whole result set and not just the current page.
+     */
+    async function downloadPdf(): Promise<void> {
+        setBuildingPdf(true);
+
+        try {
+            const response = await fetch(`${reportUrl}/data?${new URLSearchParams(queryFrom(filters)).toString()}`, {
+                headers: { Accept: 'application/json' },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Request failed with ${response.status}`);
+            }
+
+            const payload: ReportPdfPayload = await response.json();
+            setPdfPayload(payload);
+
+            // Let React paint the off-screen document, and Recharts lay its bars out, before capture.
+            await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 250)));
+
+            if (pdfRef.current === null) {
+                throw new Error('The document could not be prepared.');
+            }
+
+            const { default: html2pdf } = await import('html2pdf.js');
+
+            await html2pdf()
+                .set({
+                    filename: `${report.slug}-${new Date().toISOString().slice(0, 10)}.pdf`,
+                    margin: [8, 8, 10, 8],
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: pdfDocumentWidth },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                })
+                .from(pdfRef.current)
+                .save();
+        } catch (error) {
+            toast.error(error instanceof Error ? `Could not build the PDF: ${error.message}` : 'Could not build the PDF.');
+        } finally {
+            setBuildingPdf(false);
+            setPdfPayload(null);
+        }
     }
 
     const activeChips = [
@@ -173,8 +227,9 @@ export function AdminReportPage({
                         <Button variant="outline" onClick={() => router.get('/admin/reports')}>
                             <LayoutGrid /> All reports
                         </Button>
-                        <Button variant="outline" onClick={() => window.print()}>
-                            <Printer /> Print
+                        <Button variant="outline" onClick={downloadPdf} disabled={buildingPdf}>
+                            {buildingPdf ? <LoaderCircle className="animate-spin" /> : <FileDown />}
+                            {buildingPdf ? 'Building PDF…' : 'Download PDF'}
                         </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -188,9 +243,6 @@ export function AdminReportPage({
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="cursor-pointer" onClick={() => exportReport('csv')}>
                                     CSV (.csv)
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer" onClick={() => exportReport('pdf')}>
-                                    PDF (.pdf)
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -363,6 +415,28 @@ export function AdminReportPage({
                     />
                 </div>
             </div>
+
+            {/*
+                Parked off-screen rather than hidden: `display: none` collapses the element, and
+                Recharts needs real dimensions to lay the chart out before html2canvas reads it.
+            */}
+            {pdfPayload && (
+                <div aria-hidden style={{ position: 'fixed', left: -20000, top: 0, width: pdfDocumentWidth, pointerEvents: 'none' }}>
+                    <div ref={pdfRef}>
+                        <ReportPdfDocument
+                            organisation={organisation}
+                            title={title}
+                            description={description}
+                            categoryLabel={report.category_label}
+                            answers={report.answers}
+                            columns={columns}
+                            chart={chart}
+                            payload={pdfPayload}
+                            activeFilters={activeChips.map((chip) => chip.label)}
+                        />
+                    </div>
+                </div>
+            )}
         </AppLayout>
     );
 }

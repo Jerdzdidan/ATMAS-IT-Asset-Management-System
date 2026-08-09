@@ -146,7 +146,7 @@ with IT Staff, who make the change.
 | Upload photos | ✅ | ✅ | — | — | — | — |
 | Manage repair queue | ✅ | ✅ | — | — | — | — |
 | Manage PM schedules | ✅ | ✅ | — | — | — | — |
-| Scan / print labels | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| Scan / download labels | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | Import / export | ✅ | ✅ | — | — | — | — |
 | Reports | All | All | Own dept. | All | All | — |
 | Logs | ✅ | — | Own dept. | — | ✅ | — |
@@ -306,7 +306,7 @@ Columns: thumbnail, tag, name, category, department, assigned to, condition, sta
 - **Sort** by clicking a column heading.
 - Row menu → **View** opens the full record; **Edit** and **Delete** appear for IT Staff.
 
-Header buttons: **Scan**, **Print labels**, **Import / Export** (IT Staff), **Register asset**
+Header buttons: **Scan**, **Labels**, **Import / Export** (IT Staff), **Register asset**
 (IT Staff).
 
 ### 5.3 The asset detail page
@@ -315,7 +315,7 @@ Everything known about one device:
 
 - **Asset details** — the full specification
 - **Current custody** — who holds it, since when, who issued it
-- **Asset label** — the QR code, with **Print label**
+- **Asset label** — the QR code, with a **Download label (PNG)** button
 - **Photos** — condition evidence
 - **Preventive maintenance** — the plans attached to it
 - **Assignment history** — every handover, ever
@@ -505,13 +505,27 @@ drill); networking half-yearly (firmware); printers quarterly (rollers, toner); 
 
 ## 9. QR labels and scanning
 
-### 9.1 Printing labels
+### 9.1 Downloading labels
 
-- **One asset:** open it → **Print label**
-- **The whole register:** Assets → **Print labels**
+- **One asset:** open it → **Download label**. You get a PNG image of the finished label — QR code,
+  tag, name, category, department, serial, and the company mark — ready to drop straight into
+  label-printer software, a document, or a chat message. Deliberately an image and not a PDF: one
+  sticker does not need a page of its own.
+- **A batch:** Assets → **Labels** opens the label picker. Search by tag, name, or serial and
+  filter by category, department, or status, then tick the assets you want. **Select filtered**
+  takes everything the current filters match, not just the rows on screen. Everything still in
+  service starts ticked, so printing the whole register is the same one click it always was — you
+  are just no longer forced into it. **Download PDF** saves the sheet, three labels across, for
+  printing onto label stock in one pass.
 
-A print-ready sheet opens, three labels across, each with the QR code, tag, name, category,
-department, serial, and the company mark. Print onto label stock and stick one on every device.
+The **Preview** panel underneath shows the real label images for what you have selected (the first
+twelve, when you have picked more), so you can check a sticker before committing it to paper.
+
+Both are generated on the server rather than sent to the browser's print dialog, so the QR codes
+keep their full resolution and stay readable to a scanner.
+
+The single-asset label crops to the width its text needs, and a very long name or department is
+shortened with an ellipsis so the sticker keeps a sensible shape.
 
 ### 9.2 What the code contains
 
@@ -597,8 +611,9 @@ open it.
   individually.
 - **A sortable, paged table** — click any heading to sort; 25, 50, or 100 rows per page.
 - **Report switcher** — jump straight to another report without going back to the catalogue.
-- **Print** — prints the report alone, without the application chrome.
-- **Export** — Excel, CSV, or PDF.
+- **Download PDF** — the report as a paper document: masthead, the figures, the chart, every
+  matching row (not just the page on screen), and prepared / reviewed / approved sign-off lines.
+- **Export** — Excel or CSV, for when you want the numbers rather than the document.
 
 Filters live in the address bar, so a filtered report can be bookmarked or pasted to a colleague and
 it opens exactly as you left it.
@@ -639,12 +654,13 @@ it opens exactly as you left it.
 
 - **Excel** — you want to sort, pivot, or total the numbers. Costs come through as real numbers.
 - **CSV** — you are feeding another system.
-- **PDF** — you are circulating or filing it. Carries the letterhead, the period, who generated it,
-  and prepared / reviewed / approved sign-off lines.
+- **PDF** (the **Download PDF** button) — you are circulating or filing it. Carries the letterhead,
+  the period, who generated it, the filters that were applied, the chart, and prepared / reviewed /
+  approved sign-off lines.
 
 ### 11.4 Running a physical stock count
 
-1. Open **Audit inventory overview**, filter to the department, export to **PDF**, print it.
+1. Open **Audit inventory overview**, filter to the department, **Download PDF**, and print it.
 2. Walk the floor with the sheet and a phone. Scan each device; tick the **Physically verified**
    column.
 3. Anything on the sheet you cannot find, and anything you find that is not on the sheet, is your

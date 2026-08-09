@@ -1,6 +1,7 @@
 import { AssetConditionBadge, AssetStatusBadge, MaintenanceStatusBadge, maintenanceFrequencyLabels } from '@/components/status-badges';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Combobox } from '@/components/ui/combobox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,7 +21,7 @@ import {
     type SharedData,
 } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeft, ArrowLeftRight, ImagePlus, PackageCheck, Printer, RotateCcw, Star, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, ImageDown, ImagePlus, PackageCheck, RotateCcw, Star, Trash2 } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 
@@ -74,7 +75,7 @@ interface AssetShowPageProps {
     currentAssignment: AssignmentRecord | null;
     assignableUsers: { id: number; name: string; employee_code: string | null }[];
     qrCode: string;
-    labelUrl: string;
+    labelPngUrl: string;
 }
 
 const requestTypeLabels: Record<MaintenanceRequestType, string> = {
@@ -92,7 +93,7 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
     );
 }
 
-export default function AssetShowPage({ asset, currentAssignment, assignableUsers, qrCode, labelUrl }: AssetShowPageProps) {
+export default function AssetShowPage({ asset, currentAssignment, assignableUsers, qrCode, labelPngUrl }: AssetShowPageProps) {
     const { permissions } = usePage<SharedData>().props.auth;
     const [assignOpen, setAssignOpen] = useState(false);
     const [returnOpen, setReturnOpen] = useState(false);
@@ -185,8 +186,8 @@ export default function AssetShowPage({ asset, currentAssignment, assignableUser
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Button asChild variant="outline">
-                            <a href={labelUrl} target="_blank" rel="noreferrer">
-                                <Printer /> Print label
+                            <a href={labelPngUrl}>
+                                <ImageDown /> Download label
                             </a>
                         </Button>
                         {permissions.manages_assets && (
@@ -270,6 +271,11 @@ export default function AssetShowPage({ asset, currentAssignment, assignableUser
                             <CardContent className="flex flex-col items-center gap-3">
                                 <img src={qrCode} alt={`QR code for ${asset.asset_tag}`} className="size-40 rounded-md border bg-white p-2" />
                                 <p className="font-mono text-sm font-semibold">{asset.asset_tag}</p>
+                                <Button asChild variant="outline" size="sm" className="w-full">
+                                    <a href={labelPngUrl}>
+                                        <ImageDown /> Download label (PNG)
+                                    </a>
+                                </Button>
                             </CardContent>
                         </Card>
                     </div>
@@ -511,20 +517,19 @@ export default function AssetShowPage({ asset, currentAssignment, assignableUser
                     </DialogHeader>
                     <form onSubmit={submitAssign} className="space-y-4">
                         <div className="space-y-2">
-                            <Label>Employee</Label>
-                            <Select value={assignForm.data.user_id} onValueChange={(value) => assignForm.setData('user_id', value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select an employee" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {assignableUsers.map((user) => (
-                                        <SelectItem key={user.id} value={String(user.id)}>
-                                            {user.name}
-                                            {user.employee_code ? ` (${user.employee_code})` : ''}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Label htmlFor="assign-user">Employee</Label>
+                            <Combobox
+                                id="assign-user"
+                                value={assignForm.data.user_id}
+                                onValueChange={(value) => assignForm.setData('user_id', value)}
+                                placeholder="Search by name or employee code"
+                                emptyMessage="No employee matches that search."
+                                options={assignableUsers.map((user) => ({
+                                    value: String(user.id),
+                                    label: user.name,
+                                    description: user.employee_code ?? undefined,
+                                }))}
+                            />
                             {assignForm.errors.user_id && <p className="text-destructive text-sm">{assignForm.errors.user_id}</p>}
                         </div>
                         <div className="space-y-2">
